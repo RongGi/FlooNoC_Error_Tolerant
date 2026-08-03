@@ -532,6 +532,29 @@ package floo_pkg;
                                    get_nw_chan_width(cfg_n, cfg_w, ch);
   endfunction
 
+  /// relfloo extra data
+  localparam int unsigned ECC_BITS = 7;
+  localparam int unsigned MAX_ECC_DATA_BITS = hsiao_ecc_pkg::max_data(ECC_BITS);
+
+  function automatic int unsigned get_axi_ecc_nums(axi_cfg_t cfg, floo_chan_e ch);
+    return get_max_axi_payload_bits(cfg, ch) / MAX_ECC_DATA_BITS + 1;
+  endfunction
+
+  function automatic int unsigned get_nw_ecc_nums(axi_cfg_t cfg_n, axi_cfg_t cfg_w, floo_chan_e ch);
+    return get_max_nw_payload_bits(cfg_n, cfg_w, ch) / MAX_ECC_DATA_BITS + 1;
+  endfunction
+
+  function automatic int unsigned get_rel_axi_rsvd_bits(axi_cfg_t cfg, axi_ch_e ch);
+    return get_max_axi_payload_bits(cfg, axi_chan_mapping(ch))
+           + ECC_BITS * get_axi_ecc_nums(cfg, axi_chan_mapping(ch))
+           - get_axi_chan_width(cfg, ch);
+  endfunction
+
+  function automatic int unsigned get_rel_nw_rsvd_bits(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
+    return get_max_nw_payload_bits(cfg_n, cfg_w, nw_chan_mapping(ch))
+           + ECC_BITS * get_nw_ecc_nums(cfg_n, cfg_w, nw_chan_mapping(ch))
+           - get_nw_chan_width(cfg_n, cfg_w, ch);
+  endfunction
 
   /**********************************************************
    *         Collective Communication Support               *

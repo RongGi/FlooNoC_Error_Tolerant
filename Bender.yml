@@ -20,6 +20,7 @@ dependencies:
   idma: { git: https://github.com/pulp-platform/idma.git,              rev: 78ab25f13a88658be3f7b4d1d7b1074effaf42eb,  upstream_name: iDMA }
   FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: common-cells-v2 }
   floo_noc_pd: { path: ./pd, target: "floo_synth" }
+  redundancy_cells : { git: "https://github.com/pulp-platform/redundancy_cells.git", rev: master}
 
 export_include_dirs:
   - hw/include
@@ -47,10 +48,13 @@ sources:
   - hw/floo_reduction_unit.sv
   # Level 3
   - hw/floo_output_arbiter.sv
+  - hw/relfloo_encoder.sv
+  - hw/relfloo_decoder.sv
   # Level 4
   - hw/floo_nw_join.sv
     # TODO(lleone): Put back and fis axi_chimney
   - hw/floo_axi_chimney.sv
+  - hw/relfloo_axi_chimney.sv
   - hw/floo_nw_chimney.sv
   - hw/floo_router.sv
   # Level 5 (Wrappers)
@@ -81,6 +85,7 @@ sources:
       - hw/tb/tb_floo_rob.sv
       - hw/tb/tb_floo_rob_multicast.sv
       #- hw/tb/tb_floo_rob_multicast.sv
+      - hw/tb/tb_relfloo_axi_chimney.sv
 
   - target: all(any(floo_test, floo_synth), axi_mesh)
     files:

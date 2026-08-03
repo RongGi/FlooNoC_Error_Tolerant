@@ -15,7 +15,7 @@ FLOO_ROOT ?= $(shell pwd)
 # Programs #
 ############
 
-QUESTA_SEPP ?=
+QUESTA_SEPP ?= questa-2026.1
 VCS_SEPP    ?=
 
 BENDER     	?= bender
@@ -110,7 +110,7 @@ clean-vsim:
 	rm -rf scripts/compile_vsim.tcl
 	rm -rf modelsim.ini
 	rm -rf transcript
-	rm -rf work*
+	rm -rf work
 
 ##################
 # VCS Simulation #

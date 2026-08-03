@@ -82,6 +82,13 @@
     logic [rsvd_bits-1:0] rsvd;                                 \
   } floo_``name``_flit_t;
 
+`define RELFLOO_TYPEDEF_FLIT_T(name, hdr_t, payload_t, rsvd_bits)  \
+  typedef struct packed {                                          \
+    hdr_t [2:0] hdr;                                               \
+    payload_t payload;                                             \
+    logic [rsvd_bits-1:0] rsvd;                                    \
+  } relfloo_``name``_flit_t;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Flit definition of a generic flit.
 //
@@ -99,6 +106,15 @@
     hdr_t hdr;                                              \
     floo_``name``_payload_t payload;                        \
   } floo_``name``_generic_flit_t;
+
+`define RELFLOO_TYPEDEF_GENERIC_FLIT_T(name, hdr_t, payload_t, ecc_bits=1, ecc_nums=1) \
+  typedef payload_t relfloo_``name``_payload_t ;                                        \
+  typedef logic [ecc_bits-1:0] relfloo_``name``_ecc_t;                                  \
+  typedef struct packed {                                                               \
+    hdr_t [2:0] hdr;                                                                    \
+    relfloo_``name``_payload_t payload;                                                 \
+    relfloo_``name``_ecc_t [ecc_nums-1:0] ecc;                                          \
+  } relfloo_``name``_generic_flit_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines AXI channel types based on a `floo_pkg::AxiCfg`.
@@ -171,6 +187,28 @@
     floo_``rsp``_generic_flit_t generic;                                                                              \
   } floo_``rsp``_chan_t;
 
+`define RELFLOO_TYPEDEF_AXI_CHAN_ALL(name, req, rsp, axi_name, cfg, hdr_t)                                               \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_aw, hdr_t, ``axi_name``_aw_chan_t, floo_pkg::get_rel_axi_rsvd_bits(cfg, floo_pkg::AxiAw)) \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_w, hdr_t, ``axi_name``_w_chan_t, floo_pkg::get_rel_axi_rsvd_bits(cfg, floo_pkg::AxiW))    \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_ar, hdr_t, ``axi_name``_ar_chan_t, floo_pkg::get_rel_axi_rsvd_bits(cfg, floo_pkg::AxiAr)) \
+  `RELFLOO_TYPEDEF_GENERIC_FLIT_T(req, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooReq)-1:0], floo_pkg::ECC_BITS, floo_pkg::get_axi_ecc_nums(cfg, floo_pkg::FlooReq))    \
+                                                                                                                      \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_b, hdr_t, ``axi_name``_b_chan_t, floo_pkg::get_rel_axi_rsvd_bits(cfg, floo_pkg::AxiB))    \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_r, hdr_t, ``axi_name``_r_chan_t, floo_pkg::get_rel_axi_rsvd_bits(cfg, floo_pkg::AxiR))    \
+  `RELFLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_axi_payload_bits(cfg, floo_pkg::FlooRsp)-1:0], floo_pkg::ECC_BITS, floo_pkg::get_axi_ecc_nums(cfg, floo_pkg::FlooRsp))    \
+                                                                                                                      \
+  typedef union packed {                                                                                              \
+    relfloo_``name``_aw_flit_t axi_aw;                                                                                   \
+    relfloo_``name``_w_flit_t axi_w;                                                                                     \
+    relfloo_``name``_ar_flit_t axi_ar;                                                                                   \
+    relfloo_``req``_generic_flit_t generic;                                                                              \
+  } relfloo_``req``_chan_t;                                                                                              \
+                                                                                                                      \
+  typedef union packed {                                                                                              \
+    relfloo_``name``_b_flit_t axi_b;                                                                                     \
+    relfloo_``name``_r_flit_t axi_r;                                                                                     \
+    relfloo_``rsp``_generic_flit_t generic;                                                                              \
+  } relfloo_``rsp``_chan_t;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the flit types and physical channel for configuration
 // with a narrow and a wide AXI interface and three physical channels `req`, `rsp` and `wide`.
@@ -260,6 +298,13 @@
     floo_``chan_name``_chan_t ``chan_name``;  \
   } floo_``name``_t;
 
+`define RELFLOO_TYPEDEF_LINK_T(name, chan_name)  \
+  typedef struct packed {                     \
+    logic [2:0] valid;                              \
+    logic [2:0] ready;                              \
+    relfloo_``chan_name``_chan_t ``chan_name``;  \
+  } relfloo_``name``_t;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with a ready-valid handshaking interface
 // It support virtual channeling by extending the handshakes
@@ -306,6 +351,10 @@
 `define FLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req_chan, rsp_chan) \
   `FLOO_TYPEDEF_LINK_T(req, req_chan)                           \
   `FLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                           \
+
+`define RELFLOO_TYPEDEF_AXI_LINK_ALL(req, rsp, req_chan, rsp_chan) \
+  `RELFLOO_TYPEDEF_LINK_T(req, req_chan)                           \
+  `RELFLOO_TYPEDEF_LINK_T(rsp, rsp_chan)                           \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with ready-valid handshaking interface
