@@ -25,7 +25,7 @@ module relfloo_route_xy_yxrouting
   input  logic                          rst_ni,
 
   input  id_t [2:0]                          xy_id_i,
-  input  addr_rule_t [2:0][floo_iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   output flit_t                         channel_o,
@@ -145,7 +145,7 @@ module relfloo_route_xy_yxrouting
         .majority_o       ( selected ),
         .fault_detected_o ( )
     );
-    TODO
+    //TODO
     assign route_sel = (selected) ?
                       route_sel_multicast : route_sel_unicast;
   end else begin: gen_unicast_route_sel

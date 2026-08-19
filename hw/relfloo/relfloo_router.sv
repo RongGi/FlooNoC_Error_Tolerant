@@ -61,7 +61,7 @@ module relfloo_router
   /// Only used for `XYRouting`, tie to '0 otherwise
   input  id_t [2:0]                                       xy_id_i,
   /// Only used for `IdTable` routing, tie to '0 otherwise
-  input  addr_rule_t [2:0][floo_iomsb(NumAddrRules):0]              id_route_map_i,
+  input  addr_rule_t [2:0][cc_pkg::iomsb(NumAddrRules):0]              id_route_map_i,
   /// Input channels
   input  logic  [NumInput-1:0][NumVirtChannels-1:0][2:0]  valid_i,
   output logic  [NumInput-1:0][NumVirtChannels-1:0][2:0]  ready_o,
@@ -116,7 +116,7 @@ module relfloo_router
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
 
-      logic [cf_math_pkg::idx_width(NumPhysChannels)-1:0] in_p;
+      logic [cc_pkg::idx_width(NumPhysChannels)-1:0] in_p;
       if (NumPhysChannels == 1) begin : gen_single_phys
         assign in_p = '0;
       end else if (NumPhysChannels == NumVirtChannels) begin : gen_virt_eq_phys

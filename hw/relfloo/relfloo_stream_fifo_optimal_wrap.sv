@@ -15,7 +15,7 @@ module relfloo_stream_fifo_optimal_wrap #(
     /// Print information when the simulation launches
     parameter bit PrintInfo = 1'b0,
     // DO NOT OVERWRITE THIS PARAMETER
-    localparam int unsigned UsageWidth = cf_math_pkg::idx_width(Depth)
+    localparam int unsigned UsageWidth = cc_pkg::idx_width(Depth)
 ) (
     input  logic                  clk_i,   // Clock
     input  logic                  rst_ni,  // Asynchronous reset active low

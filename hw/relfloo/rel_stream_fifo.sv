@@ -19,7 +19,7 @@ module rel_stream_fifo #(
     parameter int unsigned Depth       = 8,
     parameter type         data_t      = logic [DataWidth-1:0],
     // DO NOT OVERWRITE THIS PARAMETER
-    localparam int unsigned UsageWidth = cf_math_pkg::idx_width(Depth)
+    localparam int unsigned UsageWidth = cc_pkg::idx_width(Depth)
 ) (
     input  logic                  clk_i,   // Clock
     input  logic                  rst_ni,  // Asynchronous reset active low

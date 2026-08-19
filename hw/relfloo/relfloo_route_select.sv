@@ -37,7 +37,7 @@ module relfloo_route_select
   input  logic                          test_enable_i,
 
   input  id_t [2:0]                          xy_id_i,
-  input  addr_rule_t [2:0][floo_iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   input  logic [2:0]                         valid_i,

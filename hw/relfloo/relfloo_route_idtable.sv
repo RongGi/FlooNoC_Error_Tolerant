@@ -21,7 +21,7 @@ module relfloo_route_idtable
   input  logic                          clk_i,
   input  logic                          rst_ni,
 
-  input  addr_rule_t [2:0][floo_iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   output flit_t                         channel_o,

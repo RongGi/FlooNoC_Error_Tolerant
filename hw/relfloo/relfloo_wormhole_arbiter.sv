@@ -24,7 +24,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
   input  logic  [2:0]                 ready_i,
   output flit_t                  data_o
 );
-  typedef logic [cf_math_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
+  typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
 
   logic [2:0]last_out, last_q;
   arb_idx_t[2:0] selected_idx, valid_selected_idx;
@@ -33,11 +33,11 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
   logic [2:0][NumRoutes-1:0] valid_d, valid_q;
 
   // Use arbiter to determine overall packet arbitration
-  TODO
+  //TODO
   for (genvar i = 0; i < 3; i++) begin : tmr_select
-    rr_arb_tree #(
+    cc_rr_arb_tree #(
       .NumIn    ( NumRoutes ),
-      .DataType ( logic     ),
+      .data_t   ( logic     ),
       .ExtPrio  ( 1'b0      ),
       .AxiVldRdy( 1'b1      ),
       .LockIn   ( 1'b1      ), // Ensure LockIn to avoid changing priority
@@ -45,7 +45,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
     ) i_rr_arb_packets (
       .clk_i,
       .rst_ni,
-      .flush_i( 1'b0 ),
+      .clr_i( 1'b0 ),
       .rr_i   ( '0 ),
       .req_i  ( valid_d[i] ),
       .gnt_o  (),
@@ -90,7 +90,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
       end
     end
   end
-TODO
+//TODO
   `FF(valid_q, valid_d, '0)
   `FF(last_q, last_out & ready_i, '0)
 
