@@ -8,6 +8,7 @@
 
 /// A AXI4 Bus Master-Slave Node for generating random AXI transactions
 module floo_axi_test_node #(
+  parameter int unsigned DELAY = 0,
   parameter floo_pkg::axi_cfg_t AxiCfg = '{default:0},
   parameter type mst_req_t = logic,
   parameter type mst_rsp_t = logic,
@@ -97,6 +98,11 @@ module floo_axi_test_node #(
   // traffic generator master
   axi_rand_master_t axi_rand_master;
   initial begin
+    // Per-node distinct, deterministic seed so each node's request stream
+    // (address -> dst, data -> payload) is decorrelated. Seed THIS process's
+    // RNG (not the object): the VIP uses $urandom internally, so obj.srandom()
+    // has no effect. DELAY is unique across all test nodes ({0..9}).
+    process::self().srandom(32'h00C0_FFEE + DELAY);
     axi_rand_master = new( master_dv);
     end_of_sim = 1'b0;
 
@@ -110,6 +116,7 @@ module floo_axi_test_node #(
     // end
     axi_rand_master.reset();
     @(posedge rst_ni)
+    repeat (DELAY) @(posedge clk_i);
     axi_rand_master.run(NumReads, NumWrites);
     end_of_sim = 1'b1;
   end
@@ -117,6 +124,9 @@ module floo_axi_test_node #(
   // axi slave
   axi_rand_slave_t axi_rand_slave;
   initial begin
+    // Decorrelate response (R/B) payloads too; different base from the master
+    // so master/slave streams are independent, still distinct per node.
+    process::self().srandom(32'hDEAD_0000 + DELAY);
     axi_rand_slave = new( slave_dv );
     axi_rand_slave.reset();
     @(posedge rst_ni)

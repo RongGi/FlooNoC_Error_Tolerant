@@ -6,6 +6,7 @@
 // Raphael Roth <raroth@student.ethz.ch>
 
 `include "common_cells/registers.svh"
+`include "floo_noc/registers.svh"
 
 module relfloo_route_select
   import floo_pkg::*;
@@ -37,19 +38,23 @@ module relfloo_route_select
   input  logic                          test_enable_i,
 
   input  id_t [2:0]                          xy_id_i,
-  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [2:0][cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   input  logic [2:0]                         valid_i,
   input  logic [2:0]                         ready_i,
   output flit_t                         channel_o,
   output logic [2:0][NumRoutes-1:0]          route_sel_o,
-  output logic [2:0][RouteSelWidth-1:0]      route_sel_id_o
+  output logic [2:0][RouteSelWidth-1:0]      route_sel_id_o,
+  output logic                               faults_o                        
 );
 
   // Selected route defined by th alg.
   logic [2:0][NumRoutes-1:0] route_sel;
   logic [2:0][RouteSelWidth-1:0] route_sel_id;
+  logic [3:0]TMR_faults;
+
+  assign faults_o = |TMR_faults;
 
   // We need to calc the multicast and the unicast route in parallel
   // and mux them depending on the flit header!
@@ -62,6 +67,7 @@ module relfloo_route_select
       .NumRoutes        (NumRoutes),
       .IdWidth          (IdWidth),
       .NumAddrRules     (NumAddrRules),
+      .RouteSelWidth    (RouteSelWidth),
       .flit_t           (flit_t),
       .addr_rule_t      (addr_rule_t),
       .id_t             (id_t)
@@ -91,8 +97,9 @@ module relfloo_route_select
     
     relfloo_route_xy_yxrouting #(
       .NumRoutes        (NumRoutes),
+      .RouteAlgo        (RouteAlgo),
       .IdWidth          (IdWidth),
-      .NumAddrRules     (NumAddrRules),
+      .RouteSelWidth    (RouteSelWidth),
       .EnMultiCast      (EnMultiCast),
       .flit_t           (flit_t),
       .addr_rule_t      (addr_rule_t),
@@ -101,11 +108,11 @@ module relfloo_route_select
       .clk_i,
       .rst_ni,
       .xy_id_i,
-      .id_route_map_i,
       .channel_i,
       .channel_o,
       .route_sel_o(route_sel),
-      .route_sel_id_o(route_sel_id)
+      .route_sel_id_o(route_sel_id),
+      .TMR_faults_o(TMR_faults[3])
     );
 
   end else begin : gen_err
@@ -136,9 +143,9 @@ module relfloo_route_select
     assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
     assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
 
-    `FF(locked_route_q, locked_route_d, '0)
-    `FFL(route_sel_q, route_sel, ~locked_route_q, '0)
-    `FFL(route_sel_id_q, route_sel_id, ~locked_route_q, '0)
+    `TMRFF(locked_route_q, locked_route_d, TMR_faults[0], '0)
+    `TMRFFL(route_sel_q, route_sel, TMR_faults[1], ~locked_route_q, '0)
+    `TMRFFL(route_sel_id_q, route_sel_id, TMR_faults[2], ~locked_route_q, '0)
 
     `ifndef TARGET_SYNTHESIS
       for (genvar i = 0; i < 3; i++) begin : gen_warn

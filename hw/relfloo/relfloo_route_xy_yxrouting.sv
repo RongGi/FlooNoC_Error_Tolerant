@@ -5,13 +5,8 @@ module relfloo_route_xy_yxrouting
   parameter int unsigned NumRoutes        = 0,
   /// Routing algorithm
   parameter route_algo_e RouteAlgo        = IdTable,
-  /// Enable wormhole routing i.e. locking the direction
-  /// until the `last` flag is received
-  parameter bit          LockRouting      = 1'b1,
   /// Id Width, only used for `XYRouting` and `IdTable`
   parameter int unsigned IdWidth          = 0,
-  /// Number of address rules, only used for `IdTable`
-  parameter int unsigned NumAddrRules     = 0,
   /// Width of port index, only used for `SrcRouting`
   parameter int unsigned RouteSelWidth    = $clog2(NumRoutes),
   /// Enable multicast routing, currently only supported for `XYRouting`
@@ -25,12 +20,12 @@ module relfloo_route_xy_yxrouting
   input  logic                          rst_ni,
 
   input  id_t [2:0]                          xy_id_i,
-  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   output flit_t                         channel_o,
   output logic [2:0][NumRoutes-1:0]          route_sel_o,
-  output logic [2:0][RouteSelWidth-1:0]      route_sel_id_o
+  output logic [2:0][RouteSelWidth-1:0]      route_sel_id_o,
+  output logic                            TMR_faults_o
 );
 
   // Routing based on simple XY routing
@@ -46,13 +41,16 @@ module relfloo_route_xy_yxrouting
   //   - 4: lower bits increasing (East )
 
   // One-hot encoding of the decoded route
-  logic [NumRoutes-1:0][2:0] route_sel;
+  logic [2:0][NumRoutes-1:0] route_sel;
   logic [2:0][RouteSelWidth-1:0] route_sel_id;
   // If we enable multicast then generate the output routes here seperatly
   // We need to calc the multicast and the unicast route in parallel
   // and mux them depending on the flit header!
-  logic [NumRoutes-1:0][2:0] route_sel_multicast;
-  logic [NumRoutes-1:0][2:0] route_sel_unicast;
+  logic [2:0][NumRoutes-1:0] route_sel_multicast;
+  logic [2:0][NumRoutes-1:0] route_sel_unicast;
+
+  // TMR error bits
+  logic [2:0] TMR_err;
   
   if (EnMultiCast) begin : gen_mcast_route_sel
     floo_route_xymask #(
@@ -96,7 +94,7 @@ module relfloo_route_xy_yxrouting
             route_sel_id[i] = East;
           end
         end
-        route_sel_unicast[route_sel_id[i]][i] = 1'b1;
+        route_sel_unicast[i][route_sel_id[i]] = 1'b1;
       end
     end
   end else begin : gen_yx_routing
@@ -126,7 +124,7 @@ module relfloo_route_xy_yxrouting
             route_sel_id[i] = North;
           end
         end
-        route_sel_unicast[route_sel_id[i]][i] = 1'b1;
+        route_sel_unicast[i][route_sel_id[i]] = 1'b1;
       end
     end
   end
@@ -134,20 +132,21 @@ module relfloo_route_xy_yxrouting
   // Depending on the flit header choose the correct route
   if(EnMultiCast) begin: gen_mcast_out_sel
     logic [2:0]selector;
-    logic selected;
+    logic [2:0]selected;
     for (genvar i = 0; i < 3; i++) begin : tmr_selector
       assign selector[i]=(channel_i.hdr[i].collective_op == Multicast);
     end
-    TMR_voter_fail i_select_tmr (
-        .a_i              ( selector[0] ),
-        .b_i              ( selector[1] ),
-        .c_i              ( selector[2] ),
-        .majority_o       ( selected ),
-        .fault_detected_o ( )
-    );
-    //TODO
-    assign route_sel = (selected) ?
-                      route_sel_multicast : route_sel_unicast;
+    for (genvar i = 0; i < 3; i++) begin : tmr_selected
+      TMR_voter_fail i_select_tmr (
+          .a_i              ( selector[0] ),
+          .b_i              ( selector[1] ),
+          .c_i              ( selector[2] ),
+          .majority_o       ( selected[i] ),
+          .fault_detected_o ( TMR_err[i])
+      );
+      assign route_sel[i] = (selected[i]) ?
+                        route_sel_multicast[i] : route_sel_unicast[i];
+    end
   end else begin: gen_unicast_route_sel
     assign route_sel = route_sel_unicast;
   end
@@ -157,10 +156,11 @@ module relfloo_route_xy_yxrouting
     end
   for (genvar i = 0; i < 3; i++) begin : tmr_index
     for (genvar out = 0; out < NumRoutes; out++) begin : routes
-      assign route_sel_o[i][out] = route_sel[out][i];
+      assign route_sel_o[i][out] = route_sel[i][out];
     end
   end
 
   // Assign the data directly to the output
+  assign TMR_faults_o = |TMR_err;
   assign channel_o = channel_i;
 endmodule

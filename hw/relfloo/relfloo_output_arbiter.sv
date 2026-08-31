@@ -39,7 +39,8 @@ module relfloo_output_arbiter import floo_pkg::*;
   /// Output port
   output logic   [2:0]                   valid_o,
   input  logic   [2:0]                   ready_i,
-  output flit_t                     data_o
+  output flit_t                     data_o,
+  output logic                      faults_o
 );
 
   flit_t                  reduce_data_out, unicast_data_out;
@@ -79,7 +80,8 @@ module relfloo_output_arbiter import floo_pkg::*;
     .ready_o ( unicast_ready_out ),
     .valid_o ( unicast_valid_out ),
     .ready_i ( unicast_ready_in  ),
-    .data_o  ( unicast_data_out  )
+    .data_o  ( unicast_data_out  ),
+    .faults_o( faults_o          )
   );
 
   // Arbitrate reductions
@@ -125,13 +127,14 @@ module relfloo_output_arbiter import floo_pkg::*;
 
     // Arbitrate between wormhole and reduction arbiter
     // Reductions have higher priority than unicasts (index 0)
-    stream_arbiter #(
-      .N_INP  (2),
-      .ARBITER("prio"),
-      .DATA_T (flit_t)
+    cc_stream_arbiter #(
+      .NumInp  (2),
+      .ArbMode (cc_pkg::ARB_PRIO),
+      .data_t  (flit_t)
     ) i_stream_arbiter (
       .clk_i,
       .rst_ni,
+      .clr_i      (1'b0),
       .inp_data_i ({unicast_data_out, reduce_data_out}),
       .inp_valid_i({unicast_valid_out, reduce_valid_out}),
       .inp_ready_o({unicast_ready_in, reduce_ready_in}),

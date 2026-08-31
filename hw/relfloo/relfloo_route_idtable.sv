@@ -21,7 +21,7 @@ module relfloo_route_idtable
   input  logic                          clk_i,
   input  logic                          rst_ni,
 
-  input  addr_rule_t [cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
+  input  addr_rule_t [2:0][cc_pkg::iomsb(NumAddrRules):0] id_route_map_i,
 
   input  flit_t                         channel_i,
   output flit_t                         channel_o,
@@ -34,7 +34,7 @@ module relfloo_route_idtable
     assign channel_o = channel_i;
 
     for (genvar i = 0; i < 3; i++) begin : gen_tmr_part
-        addr_decode #(
+        cc_addr_decode #(
             .NoIndices ( NumRoutes    ),
             .NoRules   ( NumAddrRules ),
             .addr_t    ( id_t         ),

@@ -7,6 +7,7 @@
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"
+`include "floo_noc/registers.svh"
 
 /// A virtual channel arbiter
 module relfloo_vc_arbiter import floo_pkg::*;
@@ -27,7 +28,8 @@ module relfloo_vc_arbiter import floo_pkg::*;
   input  logic  [NumVirtChannels-1:0][2:0] ready_i,
   output logic  [NumVirtChannels-1:0][2:0] valid_o,
   output flit_t [NumPhysChannels-1:0] data_o,
-  input  logic  [NumVirtChannels-1:0] credit_i
+  input  logic  [NumVirtChannels-1:0] credit_i,
+  output logic  faults_o
 );
 
 if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
@@ -71,7 +73,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
         end
       end
 
-      `FF(mask_q, mask_d, '1, clk_i, rst_ni)
+      `TMRFF(mask_q, mask_d,faults_o, '1, clk_i, rst_ni)
     end
 
     //////////////////////////
@@ -138,7 +140,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
   if (VcImpl == VcCredit) begin: gen_credit
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_vc_credits
       for (genvar i = 0; i < 3; i++) begin : tmr
-        credit_counter #(
+        cc_credit_counter #(
           .NumCredits(NumCredits)
         ) i_vc_credit_counter (
           .clk_i            ( clk_i                     ),

@@ -8,6 +8,7 @@
 
 `include "common_cells/assertions.svh"
 `include "common_cells/registers.svh"
+`include "floo_noc/registers.svh"
 
 /// A simple router with configurable number of ports, physical and virtual channels, and input/output buffers
 module relfloo_router
@@ -74,7 +75,9 @@ module relfloo_router
   input  logic  [NumOutput-1:0][NumVirtChannels-1:0] credit_i,
   /// Interface towards reduction offload unit
   output  red_req_t                 offload_req_o,
-  input   red_rsp_t                 offload_rsp_i
+  input   red_rsp_t                 offload_rsp_i,
+  /// error report:  bit 1 detected and corrected, bit 1 detected and uncorrectable
+  output logic [1:0]                faults_o
 );
 
   // TODO MICHAERO: assert NumPhysChannels <= NumVirtChannels
@@ -112,6 +115,13 @@ module relfloo_router
   logic  [NumOutput-1:0] red_offload_valid_out, red_offload_ready_out;
   flit_t [NumOutput-1:0] red_offload_data_out;
 
+  //fault reporting
+  logic [3:0] faults_corrected;
+  logic [1:0] faults_uncorrected;
+
+  logic [1:0][NumInput-1:0][NumVirtChannels-1:0] faults_inputs_corrected;
+  logic [NumInput-1:0][NumVirtChannels-1:0] faults_inputs_uncorrected;
+
   // Router input part
   for (genvar in = 0; in < NumInput; in++) begin : gen_input
     for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
@@ -141,7 +151,7 @@ module relfloo_router
         .data_o     ( in_data [in][v]    ),
         .valid_o    ( in_valid[in][v]    ),
         .ready_i    ( in_ready[in][v]    ),
-        .fault_o    ()
+        .fault_o    ( {faults_inputs_corrected[0][in][v],faults_inputs_uncorrected[in][v]})
       );
 
       relfloo_route_select #(
@@ -164,7 +174,8 @@ module relfloo_router
         .ready_i        ( in_ready      [in][v] ),
         .channel_o      ( in_routed_data[in][v] ),
         .route_sel_o    ( route_mask    [in][v] ),
-        .route_sel_id_o (                       )
+        .route_sel_id_o (                       ),
+        .faults_o       ( faults_inputs_corrected[1][in][v]   )
       );
 
       // Credit count generation. Assign 1 upon any handshake
@@ -178,6 +189,9 @@ module relfloo_router
     end
   end
 
+  assign faults_corrected[0] = |faults_inputs_corrected;
+  assign faults_uncorrected[0] = |faults_inputs_uncorrected;
+
 
   // Var for the "normal" dataflow without any reduction
   logic  [NumInput-1:0][NumVirtChannels-1:0][2:0] cross_valid, cross_ready;
@@ -187,7 +201,7 @@ module relfloo_router
   logic  [NumInput-1:0][NumVirtChannels-1:0][NumOutput-1:0] red_route_selected;
   flit_t [NumInput-1:0][NumVirtChannels-1:0] red_data_in;
 
-  // Vars for the data comming from the reduction
+  // Vars for the data coming from the reduction
   logic  [NumOutput-1:0][NumVirtChannels-1:0] red_valid_out, red_ready_out;
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] red_data_out;
 
@@ -196,7 +210,7 @@ module relfloo_router
   logic [NumInput-1:0][NumVirtChannels-1:0][$clog2(NumInput):0] red_how_many_participants;
   logic [NumInput-1:0][NumVirtChannels-1:0] red_single_member, offload_reduction;
 
-  // If we support offload reduction and a reduction is dedected then we split the signal and forward it to the reduction
+  // If we support offload reduction and a reduction is detected then we split the signal and forward it to the reduction
   if(EnSequentialReduction) begin : gen_offload_reduction_demux
     for (genvar in = 0; in < NumInput; in++) begin : gen_input
       for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_virt_input
@@ -215,9 +229,10 @@ module relfloo_router
         );
 
         // onehot decoding of the input direction
-        // bypass the reduction if only on  e input member is selected (if none is selected then bypass too [should never occure but to avoid deadlocks])
-        popcount #(
-          .INPUT_WIDTH (NumInput)
+        // bypass the reduction if only one input member is selected
+        // (if none is selected then bypass too [should never occurred but to avoid deadlocks])
+        cc_popcount #(
+          .InputWidth  (NumInput)
         ) i_red_list_counter (
           .data_i       (red_expected_in_route[in][v]),
           .popcount_o   (red_how_many_participants[in][v])
@@ -229,8 +244,8 @@ module relfloo_router
         // Output 1: reduction
         assign offload_reduction[in][v] = (~red_single_member[in][v]) &
                             (is_seq_reduction_op(in_routed_data[in][v].hdr.collective_op));
-        stream_demux #(
-          .N_OUP              (2)
+        cc_stream_demux #(
+          .NumOup             (2)
         ) i_stream_demux (
           .inp_valid_i        (in_valid[in][v]),
           .inp_ready_o        (in_ready[in][v]),
@@ -252,10 +267,8 @@ module relfloo_router
     assign red_expected_in_route = '0;
   end
 
-  // TODO(lleone): For the moment we don't support reduction with only one virtual channel.
-  // This requirement could be relaxed in the future if the wide req router is split between
-  // AR/W and R channels.
-  // To have reduction support, VC0 must be used for the reduction traffic
+  // To support reduction, there is need for virtual channels,
+  // or decoupled write/read streams to avoid deadlock.
 
   // Reduction logic
   if(EnSequentialReduction) begin : gen_reduction_logic
@@ -362,12 +375,12 @@ module relfloo_router
           for (genvar i = 0; i < 3; i++) begin : tmr_masked
             assign masked_ready_transposed[in][v][i][out] = masked_ready[out][v][i][in];
             assign masked_valid[out][v][i][in]     = cross_valid[in][v][i] & route_mask[in][v][i][out] &
-                                                  (!EnMultiCast || ~past_handshakes_q[in][v][out][i]);
+                                                  (!EnMultiCast || ~past_handshakes_q[in][v][i][out]);
           end
           assign masked_data[out][v][in]      = in_routed_data[in][v];
         end
         for (genvar i = 0; i < 3; i++) begin : tmr_masked
-          assign masked_valid_transposed[i][in][v][out] = masked_valid[i][out][v][in];
+          assign masked_valid_transposed[in][v][i][out] = masked_valid[out][v][i][in];
         end
       end
       if (!EnMultiCast) begin : gen_unicast
@@ -394,15 +407,21 @@ module relfloo_router
           assign ignore_routes[in][v][i] = NoLoopback ? (1 << in) : '0;
           assign expected_handshakes[in][v][i] = route_mask[in][v][i] & ~ignore_routes[in][v][i];
 
-          // Send ready upstream only when all expected downstream handhsalkes have been received
+          // Send ready upstream only when all expected downstream handshakes have been received
           assign cross_ready[in][v][i] = &(all_handshakes[in][v][i] | ~expected_handshakes[in][v][i]);
         end
       end
     end
   end
 
-  // TODO (lleone): Move the folloiwng FF inside the multicast
-  `FF(past_handshakes_q, past_handshakes_d, '0)
+  // TODO (lleone): Move the following FF inside the multicast
+  logic [NumInput-1:0][NumVirtChannels-1:0] handshake_faults;
+  for (genvar in = 0; in < NumInput; in++) begin : gen_hs_input_ff
+    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_hs_virt_ff
+      `TMRFF(past_handshakes_q[in][v], past_handshakes_d[in][v], handshake_faults[in][v], '0);
+    end
+  end
+  assign faults_corrected[1]=|handshake_faults;
 
   // We merge the data from the reduction module as an additional input of our output arbiter.
   logic [NumOutput-1:0][NumVirtChannels-1:0][2:0][LocalNumInputs-1:0] merged_valid, merged_ready;
@@ -423,10 +442,14 @@ module relfloo_router
     assign masked_ready = merged_ready;
   end
 
-  // Vars to handle the output of the arbiter and the optinal fifos
+  // Vars to handle the output of the arbiter and the optional fifos
   flit_t [NumOutput-1:0][NumVirtChannels-1:0] out_data, out_buffered_data;
   logic  [NumOutput-1:0][NumVirtChannels-1:0][2:0] out_valid, out_ready;
   logic  [NumOutput-1:0][NumVirtChannels-1:0][2:0] out_buffered_valid, out_buffered_ready;
+
+  logic  [NumOutput-1:0][NumVirtChannels-1:0] faults_outputs_uncorrected;
+  logic  [1:0][NumOutput-1:0][NumVirtChannels-1:0] faults_outputs_corrected;
+  logic  [NumOutput-1:0]  faults_vs_arb_corrected;
 
   for (genvar out = 0; out < NumOutput; out++) begin : gen_output
 
@@ -453,7 +476,8 @@ module relfloo_router
 
         .valid_o ( out_valid[out][v] ),
         .ready_i ( out_ready[out][v] ),
-        .data_o  ( out_data [out][v] )
+        .data_o  ( out_data [out][v] ),
+        .faults_o( faults_outputs_corrected[0][out][v])
       );
 
       if (OutFifoDepth > 0) begin : gen_out_fifo
@@ -473,12 +497,14 @@ module relfloo_router
           .data_o     ( out_buffered_data [out][v] ),
           .valid_o    ( out_buffered_valid[out][v] ),
           .ready_i    ( out_buffered_ready[out][v] ),
-          .fault_o    ()
+          .fault_o    ({faults_outputs_corrected[1][out][v],faults_outputs_uncorrected[out][v]})
         );
       end else begin : gen_no_out_fifo
         assign out_buffered_data [out][v] = out_data          [out][v];
         assign out_buffered_valid[out][v] = out_valid         [out][v];
         assign out_ready         [out][v] = out_buffered_ready[out][v];
+        assign faults_outputs_corrected[1][out][v] = '0;
+        assign faults_outputs_uncorrected[out][v] = '0;
       end
     end
 
@@ -500,9 +526,16 @@ module relfloo_router
       .ready_i  ( ready_i  [out] ),
       .valid_o  ( valid_o  [out] ),
       .data_o   ( data_o   [out] ),
-      .credit_i ( credit_i[out] )
+      .credit_i ( credit_i[out] ),
+      .faults_o (faults_vs_arb_corrected[out])
     );
   end
+  assign faults_corrected[2] = |faults_outputs_corrected;
+  assign faults_uncorrected[1] = |faults_outputs_uncorrected;
+  assign faults_corrected[3] = |faults_vs_arb_corrected;
+
+  assign faults_o[0] = |faults_corrected;
+  assign faults_o[1] = |faults_uncorrected; 
 
   if (VcImpl != VcPreemptValid) begin: gen_stbl_valin_assert
     for (genvar i = 0; i < NumInput; i++) begin : gen_input_assert

@@ -6,6 +6,7 @@
 
 `include "common_cells/registers.svh"
 `include "common_cells/assertions.svh"
+`include "floo_noc/registers.svh"
 
 /// A wormhole arbiter
 module relfloo_wormhole_arbiter import floo_pkg::*;
@@ -22,9 +23,12 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
   /// Ports towards the output route
   output logic  [2:0]                 valid_o,
   input  logic  [2:0]                 ready_i,
-  output flit_t                  data_o
+  output flit_t                  data_o,
+  output logic                   faults_o
 );
   typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
+
+  logic [1:0] FF_TMR_fault;
 
   logic [2:0]last_out, last_q;
   arb_idx_t[2:0] selected_idx, valid_selected_idx;
@@ -90,9 +94,10 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
       end
     end
   end
-//TODO
-  `FF(valid_q, valid_d, '0)
-  `FF(last_q, last_out & ready_i, '0)
+
+  `TMRFF(valid_q, valid_d, FF_TMR_fault[0], '0)
+  `TMRFF(last_q, last_out & ready_i, FF_TMR_fault[1], '0)
+  assign faults_o = |FF_TMR_fault;
 
   `ASSERT(InvalidCreation, valid_o |-> |valid_i)
 

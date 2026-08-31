@@ -23,7 +23,7 @@ module relfloo_axi_chimney
   parameter floo_pkg::route_cfg_t RouteCfg  = floo_pkg::RouteDefaultCfg,
   /// Atomic operation support
   parameter bit AtopSupport                 = 1'b1,
-  /// Maximum number of oustanding Atomic transactions,
+  /// Maximum number of outstanding Atomic transactions,
   /// must be smaller or equal to 2**AxiOutIdWidth-1 since
   /// Every atomic transactions needs to have a unique ID
   /// and one ID is reserved for non-atomic transactions
@@ -51,7 +51,7 @@ module relfloo_axi_chimney
   parameter sam_rule_t [RouteCfg.NumSamRules-1:0] Sam   = '0,
   /// SAM Index type to support multicast info
   parameter type sam_idx_t                              = id_t,
-  /// Struct consisting of offset and len to speficy the position of the mask bits
+  /// Struct consisting of offset and len to specify the position of the mask bits
   /// (only used if `EnMultiCast && RouteCfg.UseIdTable == 1'b1 && RouteCfg.RouteAlgo == XYRouting`)
   parameter type mask_sel_t                             = logic,
   /// AXI manager request channel type
@@ -111,7 +111,7 @@ module relfloo_axi_chimney
   typedef logic [AxiCfg.DataWidth-1:0] axi_data_t;
   typedef logic [AxiCfg.DataWidth/8-1:0] axi_strb_t;
 
-  // (Re-) definitons of `axi_in` and `floo` types, for transport
+  // (Re-) definitions of `axi_in` and `floo` types, for transport
   `AXI_TYPEDEF_ALL_CT(axi, axi_req_t, axi_rsp_t, axi_addr_t, axi_in_id_t,
                       axi_data_t, axi_strb_t, axi_user_t)
   `AXI_TYPEDEF_AW_CHAN_T(axi_out_aw_chan_t, axi_addr_t, axi_out_id_t, axi_user_t)
@@ -228,6 +228,7 @@ module relfloo_axi_chimney
       ) i_aw_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i     ( axi_in_req_i.aw         ),
         .valid_i    ( axi_in_req_i.aw_valid   ),
         .ready_o    ( axi_rsp_out.aw_ready    ),
@@ -241,6 +242,7 @@ module relfloo_axi_chimney
       ) i_ar_queue (
         .clk_i,
         .rst_ni,
+        .clr_i(1'b0),
         .data_i     ( axi_in_req_i.ar         ),
         .valid_i    ( axi_in_req_i.ar_valid   ),
         .ready_o    ( axi_rsp_out.ar_ready    ),
@@ -254,6 +256,7 @@ module relfloo_axi_chimney
         ) i_usermask_queue (
           .clk_i,
           .rst_ni,
+          .clr_i(1'b0),
           .data_i   ( axi_req_in_mask ),
           .valid_i  ( axi_req_in.aw_valid ),
           .ready_o  (  ),
@@ -283,7 +286,6 @@ module relfloo_axi_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i         ),
       .rst_ni     ( rst_ni        ),
-      .test_i     ( test_enable_i ),
       .slv_req_i  ( axi_in_req_i  ),
       .slv_resp_o ( axi_in_rsp_o  )
     );
@@ -301,6 +303,7 @@ module relfloo_axi_chimney
     ) i_data_req_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
+      .clr_i(1'b0),
       .data_i     ( floo_req_in_post_dec_req      ),
       .valid_i    ( floo_req_in_post_dec_valid    ),
       .ready_o    ( floo_req_out_pre_enc_ready    ),
@@ -314,6 +317,7 @@ module relfloo_axi_chimney
     ) i_data_rsp_arb (
       .clk_i      ( clk_i               ),
       .rst_ni     ( rst_ni              ),
+      .clr_i(1'b0),
       .data_i     ( floo_rsp_in_post_dec_rsp      ),
       .valid_i    ( floo_rsp_in_post_dec_valid    ),
       .ready_o    ( floo_rsp_out_pre_enc_ready    ),
@@ -344,6 +348,7 @@ module relfloo_axi_chimney
   ) i_aw_out_queue (
     .clk_i    ( clk_i                     ),
     .rst_ni   ( rst_ni                    ),
+    .clr_i(1'b0),
     .valid_i  ( meta_buf_req_out.aw_valid ),
     .ready_o  ( aw_out_queue_ready        ),
     .data_i   ( axi_aw_queue_in           ),
@@ -707,6 +712,7 @@ module relfloo_axi_chimney
   ) i_req_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i(1'b0),
     .valid_i ( floo_req_arb_valid ),
     .ready_o ( floo_req_arb_ready ),
     .data_i  ( floo_req_chan_t'(floo_req_arb_data) ),
@@ -738,6 +744,7 @@ module relfloo_axi_chimney
   ) i_rsp_out_cut (
     .clk_i,
     .rst_ni,
+    .clr_i(1'b0),
     .valid_i ( floo_rsp_arb_valid ),
     .ready_o ( floo_rsp_arb_ready ),
     .data_i  ( floo_rsp_chan_t'(floo_rsp_arb_data) ),
@@ -923,7 +930,6 @@ module relfloo_axi_chimney
     ) i_axi_err_slv (
       .clk_i      ( clk_i             ),
       .rst_ni     ( rst_ni            ),
-      .test_i     ( test_enable_i     ),
       .slv_req_i  ( meta_buf_req_in   ),
       .slv_resp_o ( meta_buf_rsp_out  )
     );

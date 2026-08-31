@@ -210,7 +210,8 @@ module tb_relfloo_rob;
     .data_o         ( chimney_req_in_chan     ),
     .credit_i       ( '0                     ),
     .offload_req_o  (                         ),
-    .offload_rsp_i  ( '0                     )
+    .offload_rsp_i  ( '0                     ),
+    .faults_o       (                         )
   );
 
   relfloo_router #(
@@ -235,7 +236,8 @@ module tb_relfloo_rob;
     .data_o         ( chimney_rsp_in_chan     ),
     .credit_i       ( '0                     ),
     .offload_req_o  (                         ),
-    .offload_rsp_i  ( '0                     )
+    .offload_rsp_i  ( '0                     ),
+    .faults_o       (                         )
   );
 
   localparam floo_test_pkg::slave_type_e SlaveType[floo_pkg::NumDirections-1] = '{

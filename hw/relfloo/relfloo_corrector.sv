@@ -28,22 +28,22 @@ module relfloo_corrector  import floo_pkg::*;
     logic [1:0][NumChunks-1:0] hsiao_errs_transpose;
     logic [1:0]      hsiao_errs_transpose_red;
 
-    for (genvar i = 0; i < 2; i++) begin : gen_hsiao_errs_transpose
-        assign hsiao_errs_transpose_red[i] = |hsiao_errs_transpose[i];
-        for (genvar j = 0; j < 5; j++) begin : gen_hsiao_errs_transpose_inner
-        assign hsiao_errs_transpose[i][j] = hsiao_errs[j][i];
+    for (genvar i = 0; i < 1; i++) begin : gen_hsiao_errs_transpose
+        for (genvar j = 0; j < NumChunks; j++) begin : gen_hsiao_errs_transpose_inner
+            assign hsiao_errs_transpose[i][j] = hsiao_errs[j][i];
         end
+         assign hsiao_errs_transpose_red[i] = |hsiao_errs_transpose[i];
     end
 
     assign voter_errs_red = |voter_errs;
-    assign fault_o[0] = voter_errs_red | hsiao_errs[0];
-    assign fault_o[1] = hsiao_errs[1];
+    assign fault_o[0] = voter_errs_red | hsiao_errs_transpose_red[0];
+    assign fault_o[1] = hsiao_errs_transpose_red[1];
 
     //TMR
     for (genvar i = 0; i < 3; i++) begin : gen_tmr_part
         
         bitwise_TMR_voter_fail #(
-            .DataWidth ( $bits(chan_o.hdr[0]) ),
+            .DataWidth ( $bits(chan_i.hdr)/3 ),
             .VoterType ( 1 )
         ) i_hdr_tmr (
             .a_i              ( chan_i.hdr[0] ),
