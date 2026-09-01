@@ -416,10 +416,16 @@ module relfloo_router
 
   // TODO (lleone): Move the following FF inside the multicast
   logic [NumInput-1:0][NumVirtChannels-1:0] handshake_faults;
-  for (genvar in = 0; in < NumInput; in++) begin : gen_hs_input_ff
-    for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_hs_virt_ff
-      `TMRFF(past_handshakes_q[in][v], past_handshakes_d[in][v], handshake_faults[in][v], '0);
+  if(EnMultiCast) begin : gen_hs_ff
+    for (genvar in = 0; in < NumInput; in++) begin : gen_hs_input_ff
+      for (genvar v = 0; v < NumVirtChannels; v++) begin : gen_hs_virt_ff
+        `TMRFF(past_handshakes_q[in][v], past_handshakes_d[in][v], handshake_faults[in][v], '0);
+      end
     end
+  end else begin : gen_no_hs_ff
+    assign past_handshakes_d = '0;
+    assign past_handshakes_q = '0;
+    assign handshake_faults  = '0;
   end
   assign faults_corrected[1]=|handshake_faults;
 

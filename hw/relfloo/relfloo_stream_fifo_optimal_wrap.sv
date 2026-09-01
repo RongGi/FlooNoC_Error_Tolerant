@@ -144,6 +144,7 @@ module relfloo_stream_fifo_optimal_wrap #(
             .ready_i,
             .fault_o(faults)
         );
+        assign corrector_faults = 2'b00;
     end
 
 endmodule : relfloo_stream_fifo_optimal_wrap

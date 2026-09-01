@@ -38,7 +38,8 @@ if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
   assign valid_o = valid_i;
   assign ready_o = ready_i;
   assign data_o  = data_i;
-  assign fault_o = 0;
+  assign FF_fault = '0;
+  assign rr_fault = '0;
 end else if (NumPhysChannels == 1) begin : gen_single_phys
 
     typedef logic [$clog2(NumVirtChannels)-1:0] arb_idx_t;
