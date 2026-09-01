@@ -29,6 +29,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
   typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
 
   logic [1:0] FF_TMR_fault;
+  logic TMR_fault;
 
   logic [2:0]last_out, last_q;
   arb_idx_t[2:0] selected_idx, valid_selected_idx;
@@ -73,7 +74,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
       .b_i              ( valid_selected_idx[1] ),
       .c_i              ( valid_selected_idx[2] ),
       .majority_o       ( valid_selected_idx_tmr ),
-      .fault_detected_o ( )
+      .fault_detected_o ( TMR_fault)
   );
   assign data_o  = data_i [valid_selected_idx_tmr];
   for (genvar i = 0; i < 3; i++) begin : gen_ready
@@ -97,7 +98,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
 
   `TMRFF(valid_q, valid_d, FF_TMR_fault[0], '0)
   `TMRFF(last_q, last_out & ready_i, FF_TMR_fault[1], '0)
-  assign faults_o = |FF_TMR_fault;
+  assign faults_o = |FF_TMR_fault | TMR_fault;
 
   `ASSERT(InvalidCreation, valid_o |-> |valid_i)
 

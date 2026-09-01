@@ -346,7 +346,7 @@ module floo_nw_router_fi_dut_wrapper #(
         , .tmrErrorC      ( tmrErrorC             )
       `endif
       `ifdef TARGET_RELNOC
-        , .faults_o       ({relErrorCorr,relErrorDet})
+        , .faults_o       ({relErrorDet,relErrorCorr})
       `endif
     );
   `else  // TARGET_NETLIST (baseline only — STMR netlist not supported)

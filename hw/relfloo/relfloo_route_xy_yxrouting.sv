@@ -149,6 +149,7 @@ module relfloo_route_xy_yxrouting
     end
   end else begin: gen_unicast_route_sel
     assign route_sel = route_sel_unicast;
+    assign TMR_err = '0;
   end
 
   for (genvar i = 0; i < 3; i++) begin : id_assign

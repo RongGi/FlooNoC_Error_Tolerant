@@ -140,8 +140,10 @@ module relfloo_route_select
     logic [2:0][RouteSelWidth-1:0] route_sel_id_q;
 
     // Use previous route selection if locked
-    assign route_sel_o = locked_route_q ? route_sel_q : route_sel;
-    assign route_sel_id_o = locked_route_q ? route_sel_id_q : route_sel_id;
+    for (genvar i = 0; i < 3; i++) begin : tmr_muliplexer 
+      assign route_sel_o[i] = locked_route_q[i] ? route_sel_q[i] : route_sel[i];
+      assign route_sel_id_o[i] = locked_route_q[i] ? route_sel_id_q[i] : route_sel_id[i];
+    end
 
     `TMRFF(locked_route_q, locked_route_d, TMR_faults[0], '0)
     `TMRFFL(route_sel_q, route_sel, TMR_faults[1], ~locked_route_q, '0)

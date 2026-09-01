@@ -34,7 +34,7 @@ module relfloo_stream_fifo_optimal_wrap #(
 
     output logic [1:0]            fault_o
 );
-    logic [1:0] faults;
+    logic  faults;
     logic [1:0] corrector_faults;
     assign fault_o[0] = |faults | corrector_faults[0];
     assign fault_o[1] = corrector_faults[1];
@@ -98,7 +98,7 @@ module relfloo_stream_fifo_optimal_wrap #(
             .valid_o ,
             .ready_i ,
             .data_o,
-            .fault_o(faults[0]),
+            .fault_o(faults),
             
             .data_corrector_o(corrector),
             .data_corrected_i(corrected)
@@ -106,6 +106,7 @@ module relfloo_stream_fifo_optimal_wrap #(
 
 
         // usage is not supported
+
         assign usage_o = 'x;
     end
 
@@ -141,7 +142,7 @@ module relfloo_stream_fifo_optimal_wrap #(
             .data_o,
             .valid_o,
             .ready_i,
-            .fault_o(faults[1])
+            .fault_o(faults)
         );
     end
 

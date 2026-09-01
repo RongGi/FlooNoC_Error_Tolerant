@@ -219,7 +219,7 @@ module relfloo_nw_router
     .credit_o       ( req_credit_out), /* unused */
     .offload_req_o  ( offload_narrow_req_o ),
     .offload_rsp_i  ( offload_narrow_rsp_i ),
-    .faults_o       ({fault_corrected[0],fault_detected[0]})
+    .faults_o       ({fault_detected[0],fault_corrected[0]})
   );
 
   relfloo_router #(
@@ -256,7 +256,7 @@ module relfloo_nw_router
     .credit_o       ( rsp_credit_out), /* unused */
     .offload_req_o  ( /* unused */  ),
     .offload_rsp_i  ( '0            ),
-    .faults_o       ({fault_corrected[1], fault_detected[1]})
+    .faults_o       ({fault_detected[1], fault_corrected[1]})
   );
 
 
@@ -301,7 +301,7 @@ module relfloo_nw_router
       .credit_o       ( wide_credit_out ),
       .offload_req_o  ( offload_wide_req_o ),
       .offload_rsp_i  ( offload_wide_rsp_i ),
-      .faults_o       ({fault_corrected[2],fault_detected[2]})
+      .faults_o       ({fault_detected[2],fault_corrected[2]})
     );
   end else begin: gen_decouple_wide_router
     logic [NumRoutes-1:0] wide_wr_valid_in, wide_wr_ready_out, wide_wr_credit_out;
@@ -370,7 +370,7 @@ module relfloo_nw_router
       .credit_o       ( wide_wr_credit_out ),
       .offload_req_o  ( offload_wide_req_o ),
       .offload_rsp_i  ( offload_wide_rsp_i ),
-      .faults_o       ({fault_wide_corrected[0], fault_wide_detected[0]})
+      .faults_o       ({fault_wide_detected[0], fault_wide_corrected[0]})
     );
 
     relfloo_router #(
@@ -407,7 +407,7 @@ module relfloo_nw_router
       .credit_o       ( wide_rd_credit_out ),
       .offload_req_o  (                    ), // Reduction not supported on wide rsp channels
       .offload_rsp_i  ( '0                 ),
-      .faults_o       ({fault_wide_corrected[1], fault_wide_detected[1]})
+      .faults_o       ({fault_wide_detected[1], fault_wide_corrected[1]})
     );
     //faults connection
     assign fault_corrected[2] = | fault_wide_corrected;
@@ -415,7 +415,9 @@ module relfloo_nw_router
   end
 
   //faults connections
-  assign faults_o = {|fault_corrected, |fault_detected};
+  logic faults_out;
+  assign faults_out = {|fault_detected, |fault_corrected};
+  assign fault_detected_o = (faults_out === 1'bx || faults_out === 1'bz) ? 1'b0 : faults_out;
 
 
   // Req and rsp algorithms can be different only when no VCs are enabled in the wide router

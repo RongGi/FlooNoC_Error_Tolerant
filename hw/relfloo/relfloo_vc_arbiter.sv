@@ -32,10 +32,13 @@ module relfloo_vc_arbiter import floo_pkg::*;
   output logic  faults_o
 );
 
+logic FF_fault, rr_fault;
+
 if (NumVirtChannels == NumPhysChannels) begin : gen_virt_eq_phys
   assign valid_o = valid_i;
   assign ready_o = ready_i;
   assign data_o  = data_i;
+  assign fault_o = 0;
 end else if (NumPhysChannels == 1) begin : gen_single_phys
 
     typedef logic [$clog2(NumVirtChannels)-1:0] arb_idx_t;
@@ -73,7 +76,9 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
         end
       end
 
-      `TMRFF(mask_q, mask_d,faults_o, '1, clk_i, rst_ni)
+      `TMRFF(mask_q, mask_d, FF_fault, '1, clk_i, rst_ni)
+    end else begin: gen_no_preempt_valid_mask
+      assign FF_fault = 1'b0;
     end
 
     //////////////////////////
@@ -134,7 +139,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       .gnt_i    ( vc_arb_gnt_in     ),
       .data_o   ( data_o            ),
       .idx_o    ( vc_arb_idx        ),
-      .fault_o  ()
+      .fault_o  ( rr_fault)
     );
 
   if (VcImpl == VcCredit) begin: gen_credit
@@ -163,6 +168,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
     // multi-pick rr-arb
 
   end
+  assign faults_o = FF_fault | rr_fault;
 
   ////////////////
   // Assertions //

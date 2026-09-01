@@ -76,7 +76,7 @@ module relfloo_router
   /// Interface towards reduction offload unit
   output  red_req_t                 offload_req_o,
   input   red_rsp_t                 offload_rsp_i,
-  /// error report:  bit 1 detected and corrected, bit 1 detected and uncorrectable
+  /// error report:  bit 0 detected and corrected, bit 1 detected and uncorrectable
   output logic [1:0]                faults_o
 );
 
@@ -151,7 +151,7 @@ module relfloo_router
         .data_o     ( in_data [in][v]    ),
         .valid_o    ( in_valid[in][v]    ),
         .ready_i    ( in_ready[in][v]    ),
-        .fault_o    ( {faults_inputs_corrected[0][in][v],faults_inputs_uncorrected[in][v]})
+        .fault_o    ( {faults_inputs_uncorrected[in][v], faults_inputs_corrected[0][in][v]})
       );
 
       relfloo_route_select #(
@@ -497,7 +497,7 @@ module relfloo_router
           .data_o     ( out_buffered_data [out][v] ),
           .valid_o    ( out_buffered_valid[out][v] ),
           .ready_i    ( out_buffered_ready[out][v] ),
-          .fault_o    ({faults_outputs_corrected[1][out][v],faults_outputs_uncorrected[out][v]})
+          .fault_o    ({faults_outputs_uncorrected[out][v], faults_outputs_corrected[1][out][v]})
         );
       end else begin : gen_no_out_fifo
         assign out_buffered_data [out][v] = out_data          [out][v];

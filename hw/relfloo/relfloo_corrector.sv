@@ -28,7 +28,7 @@ module relfloo_corrector  import floo_pkg::*;
     logic [1:0][NumChunks-1:0] hsiao_errs_transpose;
     logic [1:0]      hsiao_errs_transpose_red;
 
-    for (genvar i = 0; i < 1; i++) begin : gen_hsiao_errs_transpose
+    for (genvar i = 0; i < 2; i++) begin : gen_hsiao_errs_transpose
         for (genvar j = 0; j < NumChunks; j++) begin : gen_hsiao_errs_transpose_inner
             assign hsiao_errs_transpose[i][j] = hsiao_errs[j][i];
         end
