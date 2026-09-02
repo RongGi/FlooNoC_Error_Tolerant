@@ -792,7 +792,8 @@ module relfloo_axi_chimney
     .chan_i     ( floo_req_i.req         ),
     .valid_o    ( floo_req_in_post_dec_valid ),
     .ready_o    ( floo_req_in_post_dec_ready ),
-    .chan_o     ( floo_req_in_post_dec_req   )
+    .chan_o     ( floo_req_in_post_dec_req   ),
+    .faults_o   ()
   );
 
   relfloo_decoder #(
@@ -804,7 +805,8 @@ module relfloo_axi_chimney
     .chan_i     ( floo_rsp_i.rsp         ),
     .valid_o    ( floo_rsp_in_post_dec_valid ),
     .ready_o    ( floo_rsp_in_post_dec_ready ),
-    .chan_o     ( floo_rsp_in_post_dec_rsp   )
+    .chan_o     ( floo_rsp_in_post_dec_rsp   ),
+    .faults_o   ()
   );
 
   ////////////////////

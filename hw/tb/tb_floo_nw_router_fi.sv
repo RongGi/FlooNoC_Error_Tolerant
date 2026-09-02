@@ -122,6 +122,9 @@ module floo_nw_router_fi_dut_wrapper #(
   logic [NumOutputs-1:0] dut_req_replica_mismatch;
   logic [NumInputs-1:0]  dut_rsp_replica_mismatch;
   logic [NumRoutes-1:0]  dut_wide_replica_mismatch;
+  logic [NumOutputs-1:0][1:0] req_correction;
+  logic [NumInputs-1:0] [1:0] rsp_correction;
+  logic [NumRoutes-1:0] [1:0] wide_correction;
 
   // ====================================================================
   // BASELINE / STMR
@@ -213,7 +216,8 @@ module floo_nw_router_fi_dut_wrapper #(
         .chan_i     ( relfloo_req_out[out].req         ),
         .valid_o    ( floo_req_o[out].valid ),
         .ready_o    ( floo_req_o[out].ready ),
-        .chan_o     ( floo_req_o[out].req   )
+        .chan_o     ( floo_req_o[out].req   ),
+        .faults_o(req_correction[out])
       );
     end
 
@@ -227,7 +231,8 @@ module floo_nw_router_fi_dut_wrapper #(
         .chan_i     ( relfloo_rsp_out[in].rsp         ),
         .valid_o    ( floo_rsp_o[in].valid ),
         .ready_o    ( floo_rsp_o[in].ready ),
-        .chan_o     ( floo_rsp_o[in].rsp   )
+        .chan_o     ( floo_rsp_o[in].rsp   ),
+        .faults_o(rsp_correction[in])
       );
     end
 
@@ -241,7 +246,8 @@ module floo_nw_router_fi_dut_wrapper #(
         .chan_i     ( relfloo_wide_out[r].wide         ),
         .valid_o    ( floo_wide_o[r].valid ),
         .ready_o    ( floo_wide_o[r].ready ),
-        .chan_o     ( floo_wide_o[r].wide   )
+        .chan_o     ( floo_wide_o[r].wide   ),
+        .faults_o(wide_correction[r])
       ); 
     end
     relfloo_nw_router #(
@@ -470,6 +476,11 @@ module floo_nw_router_fi_dut_wrapper #(
     end
     assign border_error =
         (|dut_req_replica_mismatch) | (|dut_rsp_replica_mismatch) | (|dut_wide_replica_mismatch);
+  `elsif TARGET_RELNOC
+    assign border_error= (|req_correction) | (|rsp_correction) | (|wide_correction);
+    assign dut_req_replica_mismatch  = '0;
+    assign dut_rsp_replica_mismatch  = '0;
+    assign dut_wide_replica_mismatch = '0;
   `else
     assign border_error              = 1'b0;
     assign dut_req_replica_mismatch  = '0;

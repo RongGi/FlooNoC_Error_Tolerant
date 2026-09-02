@@ -415,7 +415,7 @@ module relfloo_nw_router
   end
 
   //faults connections
-  assign faults_ = {|fault_detected, |fault_corrected};
+  assign faults_o = {|fault_detected, |fault_corrected};
 
 
   // Req and rsp algorithms can be different only when no VCs are enabled in the wide router

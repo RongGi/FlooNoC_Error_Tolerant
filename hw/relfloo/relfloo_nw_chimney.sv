@@ -123,8 +123,6 @@ module relfloo_nw_chimney
   input  floo_wide_t  floo_wide_i
 );
 
-  import floo_pkg::*;
-
   typedef logic [AxiCfgN.AddrWidth-1:0] axi_addr_t;
   typedef logic [AxiCfgN.InIdWidth-1:0] axi_narrow_in_id_t;
   typedef logic [AxiCfgN.OutIdWidth-1:0] axi_narrow_out_id_t;
@@ -1572,7 +1570,8 @@ module relfloo_nw_chimney
     .chan_i     ( floo_req_i.req         ),
     .valid_o    ( floo_req_valid_after_dec ),
     .ready_o    ( floo_req_ready_after_dec ),
-    .chan_o     ( floo_req_req_after_dec   )
+    .chan_o     ( floo_req_req_after_dec   ),
+    .faults_o   ()
   );
 
   relfloo_decoder #(
@@ -1584,7 +1583,8 @@ module relfloo_nw_chimney
     .chan_i     ( floo_rsp_i.rsp         ),
     .valid_o    ( floo_rsp_valid_after_dec ),
     .ready_o    ( floo_rsp_ready_after_dec ),
-    .chan_o     ( floo_rsp_rsp_after_dec   )
+    .chan_o     ( floo_rsp_rsp_after_dec   ),
+    .faults_o   ()
   );
 
   relfloo_decoder #(
@@ -1596,7 +1596,8 @@ module relfloo_nw_chimney
     .chan_i     ( floo_wide_i.wide         ),
     .valid_o    ( floo_wide_valid_after_dec ),
     .ready_o    ( floo_wide_ready_after_dec ),
-    .chan_o     ( floo_wide_wide_after_dec   )
+    .chan_o     ( floo_wide_wide_after_dec   ),
+    .faults_o   ()
   );
 
 
