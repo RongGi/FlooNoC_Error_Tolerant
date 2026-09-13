@@ -374,6 +374,14 @@
     floo_``chan_name``_chan_t [phy_num-1:0] ``chan_name``;       \
   } floo_``name``_t;
 
+`define RELFLOO_TYPEDEF_VIRT_CHAN_LINK_T(name, chan_name, vc_num, phy_num)   \
+  typedef struct packed {                                        \
+    logic [vc_num-1:0][2:0] valid;                                    \
+    logic [vc_num-1:0][2:0] ready;                                    \
+    logic [vc_num-1:0] credit;                                 \
+    relfloo_``chan_name``_chan_t [phy_num-1:0] ``chan_name``;       \
+  } relfloo_``name``_t;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Defines the all the link types with ready-valid handshaking interface
 // for a single AXI interface configuration
@@ -454,6 +462,11 @@
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, 1, 1)                                                            \
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1, 1)                                                                        \
   `FLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
+
+`define RELFLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req_chan, rsp_chan, wide_chan, wide_virt_chan, wide_phys_chan)  \
+  `RELFLOO_TYPEDEF_VIRT_CHAN_LINK_T(req, req_chan, 1, 1)                                                            \
+  `RELFLOO_TYPEDEF_VIRT_CHAN_LINK_T(rsp, rsp_chan, 1, 1)                                                                        \
+  `RELFLOO_TYPEDEF_VIRT_CHAN_LINK_T(wide, wide_chan, wide_virt_chan, wide_phys_chan)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Reduction offload request channel payload

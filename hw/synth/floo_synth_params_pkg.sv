@@ -72,6 +72,48 @@ package floo_synth_axi_pkg;
 
 endpackage
 
+package relfloo_synth_nw_pkg;
+
+  import floo_synth_params_pkg::*;
+
+  localparam floo_pkg::axi_cfg_t AxiCfgN = '{
+    AddrWidth: 48,
+    DataWidth: 64,
+    UserWidth: 5,
+    InIdWidth: 4,
+    OutIdWidth: 2
+  };
+
+  // AXI nw_chimney parameters
+  localparam floo_pkg::axi_cfg_t AxiCfgW = '{
+    AddrWidth: 48,
+    DataWidth: 512,
+    UserWidth: 1,
+    InIdWidth: 3,
+    OutIdWidth: 1
+  };
+
+  `FLOO_TYPEDEF_HDR_T(hdr_t, id_t, id_t, floo_pkg::nw_ch_e, logic)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_narrow, AxiCfgN)
+  `FLOO_TYPEDEF_AXI_FROM_CFG(axi_wide, AxiCfgW)
+  `RELFLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
+      AxiCfgN, AxiCfgW, hdr_t)
+
+  localparam floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None;
+  localparam floo_pkg::vc_impl_e VcImpl = floo_pkg::VcNaive;
+
+  localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
+  localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
+  `RELFLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
+                                      NumVirtualChannels, NumWidePhysChannels)
+
+  typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
+  typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(wide, floo_wide_red_data_t, wide_req, wide_rsp)
+  `FLOO_RED_TYPEDEF_REQ_RSP_LINK(narrow, floo_narrow_red_data_t, narrow_req, narrow_rsp)
+
+endpackage
+
 package floo_synth_nw_pkg;
 
   import floo_synth_params_pkg::*;
@@ -99,7 +141,7 @@ package floo_synth_nw_pkg;
   `FLOO_TYPEDEF_NW_CHAN_ALL(axi, req, rsp, wide, axi_narrow_in, axi_wide_in,
       AxiCfgN, AxiCfgW, hdr_t)
 
-  localparam floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::Phys;
+  localparam floo_pkg::wide_rw_decouple_e WideRwDecouple = floo_pkg::None;
   localparam floo_pkg::vc_impl_e VcImpl = floo_pkg::VcNaive;
 
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;

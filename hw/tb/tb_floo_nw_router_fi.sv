@@ -119,6 +119,7 @@ module floo_nw_router_fi_dut_wrapper #(
   // --------------------------------------------------------------------
   logic                  dut_error;
   logic                  border_error;
+  logic                  uncorr_error;       // pulse: detected, not correctable
   logic [NumOutputs-1:0] dut_req_replica_mismatch;
   logic [NumInputs-1:0]  dut_rsp_replica_mismatch;
   logic [NumRoutes-1:0]  dut_wide_replica_mismatch;
@@ -147,10 +148,7 @@ module floo_nw_router_fi_dut_wrapper #(
     floo_wide_t [NumRoutes-1:0]  wide_oA, wide_oB, wide_oC;
   `endif
 
-  `ifndef TARGET_NETLIST
-    `ifdef HAS_TMR
-    floo_nw_routerTMR #(
-    `elsif TARGET_RELNOC
+  `ifdef TARGET_RELNOC
     relfloo_req_t  [NumInputs-1:0]  relfloo_req_in;
     relfloo_req_t  [NumOutputs-1:0] relfloo_req_out;
     relfloo_rsp_t  [NumOutputs-1:0] relfloo_rsp_in;
@@ -250,6 +248,12 @@ module floo_nw_router_fi_dut_wrapper #(
         .faults_o(wide_correction[r])
       ); 
     end
+  `endif
+
+  `ifndef TARGET_NETLIST
+    `ifdef HAS_TMR
+    floo_nw_routerTMR #(
+    `elsif TARGET_RELNOC
     relfloo_nw_router #(
     `else
     floo_nw_router #(
@@ -358,27 +362,48 @@ module floo_nw_router_fi_dut_wrapper #(
   `else  // TARGET_NETLIST (baseline only — STMR netlist not supported)
   // Synth wrapper: scalar id_route_map_i, no parameter list.
     `ifndef HAS_TMR
-    floo_synth_nw_router i_dut (
-      .clk_i          ( clk_i                 ),
-      .rst_ni         ( rst_ni                ),
-      .test_enable_i  ( 1'b0                  ),
-      .id_i           ( id_i                  ),
-      .id_route_map_i ( id_route_map_i[0]     ),
-      .floo_req_i     ( floo_req_i            ),
-      .floo_rsp_i     ( floo_rsp_i            ),
-      .floo_req_o     ( floo_req_o            ),
-      .floo_rsp_o     ( floo_rsp_o            ),
-      .floo_wide_i    ( floo_wide_i           ),
-      .floo_wide_o    ( floo_wide_o           )
-    );
+      `ifdef TARGET_RELNOC
+        relfloo_synth_nw_router i_dut(
+          .clk_i          ( clk_i                 ),
+          .rst_ni         ( rst_ni                ),
+          .test_enable_i  ( 1'b0                  ),
+          .id_i           ( {id_i,id_i,id_i}      ),
+          .id_route_map_i ( {3{id_route_map_i}}   ),
+          .floo_req_i     ( relfloo_req_in            ),
+          .floo_rsp_i     ( relfloo_rsp_in            ),
+          .floo_req_o     ( relfloo_req_out            ),
+          .floo_rsp_o     ( relfloo_rsp_out            ),
+          .floo_wide_i    ( relfloo_wide_in           ),
+          .floo_wide_o    ( relfloo_wide_out           ),
+          .offload_wide_req_o(),
+          .offload_wide_rsp_i(),
+          .offload_narrow_req_o(),
+          .offload_narrow_rsp_i(),
+          .faults_o({relErrorDet,relErrorCorr})
+        );
+      `else
+        floo_synth_nw_router i_dut (
+          .clk_i          ( clk_i                 ),
+          .rst_ni         ( rst_ni                ),
+          .test_enable_i  ( 1'b0                  ),
+          .id_i           ( id_i                  ),
+          .id_route_map_i ( id_route_map_i[0]     ),
+          .floo_req_i     ( floo_req_i            ),
+          .floo_rsp_i     ( floo_rsp_i            ),
+          .floo_req_o     ( floo_req_o            ),
+          .floo_rsp_o     ( floo_rsp_o            ),
+          .floo_wide_i    ( floo_wide_i           ),
+          .floo_wide_o    ( floo_wide_o           )
+        );
+      `endif
     `else
-    floo_synth_nw_routerTMR i_dut (
-      .clk_iA          ( clk_i                 ),
-      .clk_iB          ( clk_i                 ),
-      .clk_iC          ( clk_i                 ),
-      .rst_niA         ( rst_ni                ),
-      .rst_niB         ( rst_ni                ),
-      .rst_niC         ( rst_ni                ),
+      floo_synth_nw_routerTMR i_dut (
+        .clk_iA          ( clk_i                 ),
+        .clk_iB          ( clk_i                 ),
+        .clk_iC          ( clk_i                 ),
+        .rst_niA         ( rst_ni                ),
+        .rst_niB         ( rst_ni                ),
+        .rst_niC         ( rst_ni                ),
       `ifndef TARGET_STMR
         .test_enable_iA  ( 1'b0                  ),
         .test_enable_iB  ( 1'b0                  ),
@@ -430,12 +455,16 @@ module floo_nw_router_fi_dut_wrapper #(
 
   `ifdef TARGET_FTMR
     assign dut_error = tmrErrorA | tmrErrorB | tmrErrorC;
+    assign uncorr_error = 1'b0;
   `elsif TARGET_STMR
     assign dut_error = tmrError;
+    assign uncorr_error = 1'b0;
   `elsif TARGET_RELNOC
-    assign dut_error = relErrorCorr | relErrorDet;
+    assign dut_error = relErrorCorr;
+    assign uncorr_error = relErrorDet;
   `else
     assign dut_error = 1'b0;
+    assign uncorr_error = 1'b0;
   `endif
 
   // --------------------------------------------------------------------
@@ -476,6 +505,9 @@ module floo_nw_router_fi_dut_wrapper #(
     end
     assign border_error =
         (|dut_req_replica_mismatch) | (|dut_rsp_replica_mismatch) | (|dut_wide_replica_mismatch);
+    assign req_correction = '0;
+    assign rsp_correction = '0;
+    assign wide_correction = '0;
   `elsif TARGET_RELNOC
     assign border_error= (|req_correction) | (|rsp_correction) | (|wide_correction);
     assign dut_req_replica_mismatch  = '0;
@@ -486,6 +518,9 @@ module floo_nw_router_fi_dut_wrapper #(
     assign dut_req_replica_mismatch  = '0;
     assign dut_rsp_replica_mismatch  = '0;
     assign dut_wide_replica_mismatch = '0;
+    assign req_correction = '0;
+    assign rsp_correction = '0;
+    assign wide_correction = '0;
   `endif
 
   // ====================================================================

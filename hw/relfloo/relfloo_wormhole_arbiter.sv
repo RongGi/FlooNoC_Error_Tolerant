@@ -29,61 +29,89 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
   typedef logic [cc_pkg::idx_width(NumRoutes)-1:0] arb_idx_t;
 
   logic [1:0] FF_TMR_fault;
-  logic TMR_fault;
+  logic voter_fault;
+  logic arb_fault;
 
   logic [2:0]last_out, last_q;
   arb_idx_t[2:0] selected_idx, valid_selected_idx;
-  arb_idx_t valid_selected_idx_tmr;
+  logic [2:0] arb_ready_in;
+  flit_t [2:0] data_sel;
 
   logic [2:0][NumRoutes-1:0] valid_d, valid_q;
 
+  //data transposing for arb_tree
+  logic [NumRoutes-1:0][2:0] valid_transposed;
+
+  for (genvar r = 0; r < NumRoutes; r++) begin: transpose_route
+    for (genvar i = 0; i < 3; i++) begin: transpose_tmr
+      assign valid_transposed[r][i] = valid_d[i][r];
+    end
+  end
+
+  //assigning ready in signals
+  for (genvar i = 0; i < 3; i++) begin: tmr_arb_ready_in
+    assign arb_ready_in[i] = ready_i[i] & last_out[i];
+  end
+
   // Use arbiter to determine overall packet arbitration
-  //TODO
-  for (genvar i = 0; i < 3; i++) begin : tmr_select
-    cc_rr_arb_tree #(
-      .NumIn    ( NumRoutes ),
-      .data_t   ( logic     ),
-      .ExtPrio  ( 1'b0      ),
-      .AxiVldRdy( 1'b1      ),
-      .LockIn   ( 1'b1      ), // Ensure LockIn to avoid changing priority
-      .FairArb  ( 1'b1      )
-    ) i_rr_arb_packets (
-      .clk_i,
-      .rst_ni,
-      .clr_i( 1'b0 ),
-      .rr_i   ( '0 ),
-      .req_i  ( valid_d[i] ),
-      .gnt_o  (),
-      .data_i ( '0 ),
-      .req_o  (),
-      .gnt_i  ( ready_i[i] & last_out[i] ),
-      .data_o (),
-      .idx_o  ( selected_idx[i] )
-    );
+  rel_rr_arb_tree #(
+    .NumIn    ( NumRoutes ),
+    .DataType ( logic ),
+    .ExtPrio  ( 1'b0      ),
+    .AxiVldRdy( 1'b1      ),
+    .LockIn   ( 1'b1      ), // Ensure LockIn to avoid changing priority
+    .FairArb  ( 1'b1      ),
+    .TmrStatus( 1'b1      )
+  ) i_rr_arb_packets (
+    .clk_i,
+    .rst_ni,
+    .flush_i( 1'b0 ),
+    .rr_i   ( '0 ),
+    .req_i  ( valid_transposed ),
+    .gnt_o  ( ),
+    .data_i ( '0),
+    .req_o  (),
+    .gnt_i  ( arb_ready_in ),
+    .data_o (),
+    .idx_o  ( selected_idx ),
+    .fault_o( arb_fault)
+  );
+  //tmr signal connection
+  for (genvar i = 0; i < 3; i++) begin: tmr_valid_out
+    assign valid_selected_idx[i] = (|(valid_i[i])) ? selected_idx[i] : '0;
+    assign valid_o[i] = valid_i[i][valid_selected_idx[i]];
+  end
 
-    assign valid_selected_idx[i] = (|valid_i[i]) ? selected_idx[i] : '0;
-
-    // Manually connect handshake and data signals
-    assign valid_o[i] = valid_i[i][valid_selected_idx_tmr];
+  // bitwise data voting
+  flit_t [2**$bits(arb_idx_t)-1:0] data_in;
+  always_comb begin
+    data_in = '0;
+    for (int r = 0; r < NumRoutes; r++) data_in[r] = data_i[r];
+  end
+  for (genvar r = 0; r < 3; r++) begin : gen_sel
+    assign data_sel[r] = data_in[valid_selected_idx[r]];
   end
   bitwise_TMR_voter_fail #(
-      .DataWidth ( $bits(valid_selected_idx[0]) ),
-      .VoterType ( 1 )
-  ) i_hdr_tmr (
-      .a_i              ( valid_selected_idx[0] ),
-      .b_i              ( valid_selected_idx[1] ),
-      .c_i              ( valid_selected_idx[2] ),
-      .majority_o       ( valid_selected_idx_tmr ),
-      .fault_detected_o ( TMR_fault)
+    .DataWidth ( $bits(flit_t) ),
+    .VoterType ( 1 )
+    ) i_idx_vote (
+    .a_i              ( data_sel[0] ),
+    .b_i              ( data_sel[1] ),
+    .c_i              ( data_sel[2] ),
+    .majority_o       ( data_o),
+    .fault_detected_o ( voter_fault)
   );
-  assign data_o  = data_i [valid_selected_idx_tmr];
-  for (genvar i = 0; i < 3; i++) begin : gen_ready
+
+  // bitwise voting of output 
+  for (genvar i = 0; i < 3; i++) begin: tmr_ready_out
     always_comb begin : proc_ready_o
       ready_o[i] = '0;
-      // when valid_i is invalid, there's no generated ready bit
-      ready_o[i][valid_selected_idx_tmr] = (|valid_i[i])? ready_i[i] : '0;
+        // when valid_i is invalid, there's no generated ready bit
+      ready_o[i][valid_selected_idx[i]] = (|valid_i[i])? ready_i[i] : '0;
     end
-  
+  end
+
+  for (genvar i = 0; i < 3; i++) begin: tmr_last_out
     assign last_out[i] = data_o.hdr[i].last & valid_o[i];
   end
 
@@ -98,8 +126,11 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
 
   `TMRFF(valid_q, valid_d, FF_TMR_fault[0], '0)
   `TMRFF(last_q, last_out & ready_i, FF_TMR_fault[1], '0)
-  assign faults_o = |FF_TMR_fault | TMR_fault;
+  assign faults_o = |{FF_TMR_fault, arb_fault, voter_fault};
 
   `ASSERT(InvalidCreation, valid_o |-> |valid_i)
+
+
+  `ASSERT_INIT(DataIdxOrder, $bits(data_i[0]) == $bits(flit_t))
 
 endmodule
