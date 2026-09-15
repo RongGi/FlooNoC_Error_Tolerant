@@ -91,17 +91,21 @@ module rel_ffl_tmr #(
   if (MultiBit) begin
     logic [2:0][DataWidth-1:0] fault_detected_mul;
     logic [2:0][DataWidth-1:0] multi_tmp;
-    logic update;
+    logic [2:0] update;
     logic [2:0][DataWidth-1:0] d_in;
 
-    assign update =  load_i || fault_detected_o;
-    assign d_in =    load_i ? multi_i : multi_o;
+    for (genvar j = 0; j < 3; j++) begin : gen_lane_en
+      assign update[j] = load_i[j] || fault_detected_o;
+      assign d_in[j]   = load_i[j] ? multi_i[j] : multi_o[j];
+    end
     always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
       if (!rst_ni) begin
         multi_tmp <= ({3{multi_reset_val_i}});
       end else begin
-        if (update) begin
-          multi_tmp <= d_in;
+        for (int j = 0; j < 3; j++) begin
+          if (update[j]) begin
+            multi_tmp[j] <= d_in[j];
+          end
         end
       end
     end
@@ -124,17 +128,21 @@ module rel_ffl_tmr #(
   end else begin
     logic [2:0] fault_detected;
     logic [2:0] single_tmp;
-    logic update;
+    logic [2:0] update;
     logic [2:0] d_in;
 
-    assign update =  load_i || fault_detected_o;
-    assign d_in =    load_i ? single_i : single_o;
+    for (genvar j = 0; j < 3; j++) begin : gen_lane_en
+      assign update[j] =  load_i[j] || fault_detected_o;
+      assign d_in[j] =    load_i[j] ? single_i[j] : single_o[j];
+    end
     always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
       if (!rst_ni) begin
         single_tmp <= ({3{single_reset_val_i}});
       end else begin
-        if (update) begin
-          single_tmp <= d_in;
+        for (int j = 0; j < 3; j++) begin
+          if (update[j]) begin
+            single_tmp[j] <= d_in[j];
+          end
         end
       end
     end
