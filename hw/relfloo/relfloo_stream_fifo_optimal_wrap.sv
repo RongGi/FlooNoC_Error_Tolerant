@@ -75,9 +75,6 @@ module relfloo_stream_fifo_optimal_wrap #(
         relfloo_corrector #(
             .chan_t(data_t)
         ) i_relfloo_corrector (
-            .clk_i   ,
-            .rst_ni  ,
-
             .chan_i (corrector) ,
             .chan_o (corrected),
             .fault_o (corrector_faults)

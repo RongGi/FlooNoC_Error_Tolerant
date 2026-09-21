@@ -127,7 +127,8 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       .NumIn      ( NumVirtChannels ),
       .DataType   ( flit_t          ),
       .AxiVldRdy  ( 1'b0            ), // fischeti: Don't think that applies
-      .LockIn     ( 1'b0            )
+      .LockIn     ( 1'b0            ),
+      .TmrStatus  ( 1'b1            )
     ) i_rr_vc_arbiter (
       .clk_i    ( clk_i             ),
       .rst_ni   ( rst_ni            ),
@@ -140,7 +141,7 @@ end else if (NumPhysChannels == 1) begin : gen_single_phys
       .gnt_i    ( vc_arb_gnt_in     ),
       .data_o   ( data_o            ),
       .idx_o    ( vc_arb_idx        ),
-      .fault_o  ( rr_fault)
+      .fault_o  ( rr_fault          )
     );
 
   if (VcImpl == VcCredit) begin: gen_credit

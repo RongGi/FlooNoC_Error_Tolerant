@@ -95,7 +95,7 @@ module rel_ffl_tmr #(
     logic [2:0][DataWidth-1:0] d_in;
 
     for (genvar j = 0; j < 3; j++) begin : gen_lane_en
-      assign update[j] = load_i[j] || fault_detected_o;
+      assign update[j] = load_i[j] || (|fault_detected_mul[j]);
       assign d_in[j]   = load_i[j] ? multi_i[j] : multi_o[j];
     end
     always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
@@ -132,7 +132,7 @@ module rel_ffl_tmr #(
     logic [2:0] d_in;
 
     for (genvar j = 0; j < 3; j++) begin : gen_lane_en
-      assign update[j] =  load_i[j] || fault_detected_o;
+      assign update[j] =  load_i[j] || (|fault_detected[j]);
       assign d_in[j] =    load_i[j] ? single_i[j] : single_o[j];
     end
     always_ff @(posedge (clk_i) or negedge (rst_ni)) begin

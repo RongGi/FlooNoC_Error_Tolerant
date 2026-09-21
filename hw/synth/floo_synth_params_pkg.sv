@@ -20,7 +20,10 @@ package floo_synth_params_pkg;
     UseIdTable: 0,
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
-    default: '0 // Potentially enable Multicast features
+    IdAddrOffset:  0,
+    NumSamRules:   1,
+    NumRoutes:     1,
+    CollectiveCfg: floo_pkg::CollectiveDefaultCfg
   };
 
   // Common chimney parameters
@@ -104,8 +107,9 @@ package relfloo_synth_nw_pkg;
 
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
-  `RELFLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
-                                      NumVirtualChannels, NumWidePhysChannels)
+  // `RELFLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
+  //                                     NumVirtualChannels, NumWidePhysChannels)
+  `RELFLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
 
   typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
   typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;
@@ -146,8 +150,9 @@ package floo_synth_nw_pkg;
 
   localparam int unsigned NumVirtualChannels = (WideRwDecouple == floo_pkg::None) ? 1 : 2;
   localparam int unsigned NumWidePhysChannels = (WideRwDecouple == floo_pkg::Phys) ? 2 : 1;
-  `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
-                                      NumVirtualChannels, NumWidePhysChannels)
+  // `FLOO_TYPEDEF_NW_VIRT_CHAN_LINK_ALL(req, rsp, wide, req, rsp, wide,
+  //                                     NumVirtualChannels, NumWidePhysChannels)
+  `FLOO_TYPEDEF_NW_LINK_ALL(req, rsp, wide, req, rsp, wide)
 
   typedef logic [AxiCfgW.DataWidth-1:0] floo_wide_red_data_t;
   typedef logic [AxiCfgN.DataWidth-1:0] floo_narrow_red_data_t;
@@ -362,15 +367,17 @@ package floo_synth_collective_pkg;
 
   localparam floo_pkg::route_cfg_t CollectRouteCfg = '{
     RouteAlgo: floo_pkg::XYRouting,
-    UseIdTable: 1,
+    UseIdTable: 0,
     XYAddrOffsetX: 16,
     XYAddrOffsetY: 20,
+    IdAddrOffset:  0,
+    NumSamRules:   1,
+    NumRoutes:     1,
     CollectiveCfg: '{
       OpCfg:      CollectOpCfgList[CollectNone],
       NarrRedCfg: NarrowReductionCfg,
       WideRedCfg: WideReductionCfg
-    },
-    default: '0
+    }
   };
 
 endpackage

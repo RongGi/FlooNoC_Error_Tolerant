@@ -9,8 +9,6 @@ module relfloo_corrector  import floo_pkg::*;
 #(
   parameter type chan_t      = logic
 ) (
-    input  logic clk_i   ,
-    input  logic rst_ni  ,
 
     input  chan_t      chan_i,
     output chan_t      chan_o,

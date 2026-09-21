@@ -104,7 +104,7 @@ module relfloo_route_select
       .flit_t           (flit_t),
       .addr_rule_t      (addr_rule_t),
       .id_t             (id_t)
-    ) i_route_idtable (
+    ) i_route_xy_routing (
       .clk_i,
       .rst_ni,
       .xy_id_i,

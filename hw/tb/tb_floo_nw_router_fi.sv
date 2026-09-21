@@ -272,15 +272,15 @@ module floo_nw_router_fi_dut_wrapper #(
       .floo_req_t   ( relfloo_req_t                      ),
       .floo_rsp_t   ( relfloo_rsp_t                      ),
       .floo_wide_t  ( relfloo_wide_t                     ),
-      `else
-      .floo_req_t   ( floo_req_t                      ),
-      .floo_rsp_t   ( floo_rsp_t                      ),
-      .floo_wide_t  ( floo_wide_t                     ),
-      `endif
       .red_wide_req_t(),
       .red_wide_rsp_t(),
       .red_narrow_req_t(),
       .red_narrow_rsp_t()
+      `else
+      .floo_req_t   ( floo_req_t                      ),
+      .floo_rsp_t   ( floo_rsp_t                      ),
+      .floo_wide_t  ( floo_wide_t                     )
+      `endif
     ) i_dut (
       `ifdef HAS_TMR // triplicated clk and rst
         .clk_iA         ( clk_i                 ),
@@ -343,10 +343,12 @@ module floo_nw_router_fi_dut_wrapper #(
         .floo_wide_i    ( floo_wide_i           ),
         .floo_wide_o    ( floo_wide_o           ),
       `endif // FLIT_TMR
+      `ifndef FLIT_TMR
         .offload_wide_req_o(),
         .offload_wide_rsp_i(),
         .offload_narrow_req_o(),
         .offload_narrow_rsp_i()
+      `endif
       `ifdef TARGET_STMR
         , .tmrError       ( tmrError              )
       `endif
@@ -363,7 +365,7 @@ module floo_nw_router_fi_dut_wrapper #(
   // Synth wrapper: scalar id_route_map_i, no parameter list.
     `ifndef HAS_TMR
       `ifdef TARGET_RELNOC
-        relfloo_synth_nw_router i_dut(
+        rel_nw_router i_dut(
           .clk_i          ( clk_i                 ),
           .rst_ni         ( rst_ni                ),
           .test_enable_i  ( 1'b0                  ),
@@ -376,13 +378,13 @@ module floo_nw_router_fi_dut_wrapper #(
           .floo_wide_i    ( relfloo_wide_in           ),
           .floo_wide_o    ( relfloo_wide_out           ),
           .offload_wide_req_o(),
-          .offload_wide_rsp_i(),
+          .offload_wide_rsp_i('0),
           .offload_narrow_req_o(),
-          .offload_narrow_rsp_i(),
+          .offload_narrow_rsp_i('0),
           .faults_o({relErrorDet,relErrorCorr})
         );
       `else
-        floo_synth_nw_router i_dut (
+        nw_router i_dut (
           .clk_i          ( clk_i                 ),
           .rst_ni         ( rst_ni                ),
           .test_enable_i  ( 1'b0                  ),
@@ -393,7 +395,11 @@ module floo_nw_router_fi_dut_wrapper #(
           .floo_req_o     ( floo_req_o            ),
           .floo_rsp_o     ( floo_rsp_o            ),
           .floo_wide_i    ( floo_wide_i           ),
-          .floo_wide_o    ( floo_wide_o           )
+          .floo_wide_o    ( floo_wide_o           ),
+          .offload_wide_req_o(),
+          .offload_wide_rsp_i('0),
+          .offload_narrow_req_o(),
+          .offload_narrow_rsp_i('0)
         );
       `endif
     `else
