@@ -188,7 +188,7 @@ module floo_nw_router_fi_dut_wrapper #(
     end
 
     for (genvar r = 0; r < NumRoutes; r++) begin : gen_wide_in
-      relfloo_encoder #(
+      relfloo_encoder_wide #(
         .chan_t     ( floo_wide_chan_t         ),
         .rel_chan_t ( relfloo_wide_chan_t      )
       ) i_wide_rel_enc (
@@ -235,7 +235,7 @@ module floo_nw_router_fi_dut_wrapper #(
     end
 
     for (genvar r = 0; r < NumRoutes; r++) begin : gen_wide_out
-      relfloo_decoder #(
+      relfloo_decoder_wide #(
         .chan_t     ( floo_wide_chan_t         ),
         .rel_chan_t ( relfloo_wide_chan_t      )
       ) i_wide_rel_dec (
@@ -403,7 +403,7 @@ module floo_nw_router_fi_dut_wrapper #(
         );
       `endif
     `else
-      floo_synth_nw_routerTMR i_dut (
+      FTMR_nw_router i_dut (
         .clk_iA          ( clk_i                 ),
         .clk_iB          ( clk_i                 ),
         .clk_iC          ( clk_i                 ),

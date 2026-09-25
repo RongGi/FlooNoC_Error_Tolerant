@@ -556,6 +556,19 @@ package floo_pkg;
            - get_nw_chan_width(cfg_n, cfg_w, ch);
   endfunction
 
+  // wide extra
+  localparam int unsigned ECC_BITS_WIDE = 8;
+  localparam int unsigned MAX_ECC_DATA_BITS_WIDE = hsiao_ecc_pkg::max_data(ECC_BITS_WIDE);
+
+  function automatic int unsigned get_nw_ecc_nums_wide(axi_cfg_t cfg_n, axi_cfg_t cfg_w, floo_chan_e ch);
+    return get_max_nw_payload_bits(cfg_n, cfg_w, ch) / MAX_ECC_DATA_BITS_WIDE + 1;
+  endfunction
+
+  function automatic int unsigned get_rel_nw_rsvd_bits_wide(axi_cfg_t cfg_n, axi_cfg_t cfg_w, nw_ch_e ch);
+    return get_max_nw_payload_bits(cfg_n, cfg_w, nw_chan_mapping(ch))
+           + ECC_BITS_WIDE * get_nw_ecc_nums_wide(cfg_n, cfg_w, nw_chan_mapping(ch))
+           - get_nw_chan_width(cfg_n, cfg_w, ch);
+  endfunction
   /**********************************************************
    *         Collective Communication Support               *
    **********************************************************/

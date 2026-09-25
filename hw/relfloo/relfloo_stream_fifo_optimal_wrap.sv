@@ -15,7 +15,9 @@ module relfloo_stream_fifo_optimal_wrap #(
     /// Print information when the simulation launches
     parameter bit PrintInfo = 1'b0,
     // DO NOT OVERWRITE THIS PARAMETER
-    localparam int unsigned UsageWidth = cc_pkg::idx_width(Depth)
+    localparam int unsigned UsageWidth = cc_pkg::idx_width(Depth),
+    // estimated theshold
+    localparam int unsigned WideCorrectorThreshold = 32'd300
 ) (
     input  logic                  clk_i,   // Clock
     input  logic                  rst_ni,  // Asynchronous reset active low
@@ -71,14 +73,23 @@ module relfloo_stream_fifo_optimal_wrap #(
 
 
         data_t corrector, corrected;
-        
-        relfloo_corrector #(
-            .chan_t(data_t)
-        ) i_relfloo_corrector (
-            .chan_i (corrector) ,
-            .chan_o (corrected),
-            .fault_o (corrector_faults)
-        );
+        if ($bits(data_t) < WideCorrectorThreshold) begin: gen_corrector_narrow
+            relfloo_corrector #(
+                .chan_t(data_t)
+            ) i_relfloo_corrector (
+                .chan_i (corrector) ,
+                .chan_o (corrected),
+                .fault_o (corrector_faults)
+            );
+        end else begin: gen_corrector_wide
+            relfloo_corrector_wide #(
+                .chan_t(data_t)
+            ) i_relfloo_corrector_wide (
+                .chan_i (corrector) ,
+                .chan_o (corrected),
+                .fault_o (corrector_faults)
+            );
+        end
   //....................................
 
         rel_spill_register #(

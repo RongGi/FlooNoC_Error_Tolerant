@@ -293,10 +293,10 @@
   `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_b, hdr_t, ``axi_wide_name``_b_chan_t, floo_pkg::get_rel_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideB))                                                     \
   `RELFLOO_TYPEDEF_GENERIC_FLIT_T(rsp, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooRsp)-1:0], floo_pkg::ECC_BITS, floo_pkg::get_nw_ecc_nums(cfg_n, cfg_w, floo_pkg::FlooRsp)) \
                                                                                                                                                                                           \
-  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_aw, hdr_t, ``axi_wide_name``_aw_chan_t, floo_pkg::get_rel_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideAw))                                                  \
-  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_w, hdr_t, ``axi_wide_name``_w_chan_t, floo_pkg::get_rel_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideW))                                                     \
-  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_r, hdr_t, ``axi_wide_name``_r_chan_t, floo_pkg::get_rel_nw_rsvd_bits(cfg_n, cfg_w, floo_pkg::WideR))                                                     \
-  `RELFLOO_TYPEDEF_GENERIC_FLIT_T(wide, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooWide)-1:0], floo_pkg::ECC_BITS, floo_pkg::get_nw_ecc_nums(cfg_n, cfg_w, floo_pkg::FlooWide)) \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_aw, hdr_t, ``axi_wide_name``_aw_chan_t, floo_pkg::get_rel_nw_rsvd_bits_wide(cfg_n, cfg_w, floo_pkg::WideAw))                                                  \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_w, hdr_t, ``axi_wide_name``_w_chan_t, floo_pkg::get_rel_nw_rsvd_bits_wide(cfg_n, cfg_w, floo_pkg::WideW))                                                     \
+  `RELFLOO_TYPEDEF_FLIT_T(``name``_wide_r, hdr_t, ``axi_wide_name``_r_chan_t, floo_pkg::get_rel_nw_rsvd_bits_wide(cfg_n, cfg_w, floo_pkg::WideR))                                                     \
+  `RELFLOO_TYPEDEF_GENERIC_FLIT_T(wide, hdr_t, logic [floo_pkg::get_max_nw_payload_bits(cfg_n, cfg_w, floo_pkg::FlooWide)-1:0], floo_pkg::ECC_BITS_WIDE, floo_pkg::get_nw_ecc_nums_wide(cfg_n, cfg_w, floo_pkg::FlooWide)) \
                                                                                                                                                                                            \
   typedef union packed {                                                                                                                                                                  \
     relfloo_``name``_narrow_aw_flit_t narrow_aw;                                                                                                                                             \

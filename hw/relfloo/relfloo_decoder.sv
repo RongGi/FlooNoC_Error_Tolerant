@@ -91,3 +91,88 @@ module relfloo_decoder import floo_pkg::*;
   end
 
 endmodule
+
+module relfloo_decoder_wide import floo_pkg::*; 
+#(
+    type chan_t = logic,
+    type rel_chan_t = logic
+) (
+    input logic [2:0] valid_i,
+    input logic [2:0] ready_i,
+    input rel_chan_t chan_i,
+    output logic valid_o,
+    output logic ready_o,
+    output chan_t chan_o,
+    output logic [1:0] faults_o
+);
+  localparam int unsigned PayloadTotalWidth = $bits(chan_i.generic.payload);
+  localparam int unsigned NumChunks = (PayloadTotalWidth + MAX_ECC_DATA_BITS_WIDE - 1) / MAX_ECC_DATA_BITS_WIDE;
+  //fault report gen
+  logic [2:0]     voter_errs;
+  logic            voter_errs_red;
+  logic [NumChunks-1:0][1:0]      hsiao_errs;
+  logic [1:0][NumChunks-1:0] hsiao_errs_transpose;
+  logic [1:0]      hsiao_errs_transpose_red;
+
+  for (genvar i = 0; i < 2; i++) begin : gen_hsiao_errs_transpose
+      for (genvar j = 0; j < NumChunks; j++) begin : gen_hsiao_errs_transpose_inner
+          assign hsiao_errs_transpose[i][j] = hsiao_errs[j][i];
+      end
+        assign hsiao_errs_transpose_red[i] = |hsiao_errs_transpose[i];
+  end
+
+  assign voter_errs_red = |voter_errs;
+  assign faults_o[0] = voter_errs_red | hsiao_errs_transpose_red[0];
+  assign faults_o[1] = hsiao_errs_transpose_red[1];
+
+  TMR_voter_fail i_valid_tmr (
+    .a_i              ( valid_i[0] ),
+    .b_i              ( valid_i[1] ),
+    .c_i              ( valid_i[2] ),
+    .majority_o       ( valid_o ),
+    .fault_detected_o ( voter_errs[0])
+  );
+
+  TMR_voter_fail i_ready_tmr (
+    .a_i              ( ready_i[0] ),
+    .b_i              ( ready_i[1] ),
+    .c_i              ( ready_i[2] ),
+    .majority_o       ( ready_o ),
+    .fault_detected_o ( voter_errs[1])
+  );
+
+  bitwise_TMR_voter_fail #(
+    .DataWidth ( $bits(chan_o.generic.hdr) ),
+    .VoterType ( 1 )
+  ) i_hdr_tmr (
+    .a_i              ( chan_i.generic.hdr[0] ),
+    .b_i              ( chan_i.generic.hdr[1] ),
+    .c_i              ( chan_i.generic.hdr[2] ),
+    .majority_o       ( chan_o.generic.hdr ),
+    .fault_detected_o ( voter_errs[2])
+  );
+
+  
+
+  for (genvar i = 0; i < NumChunks; i++) begin : gen_ecc_dec
+    localparam int unsigned CurChunkWidth = (i == NumChunks - 1) 
+                                          ? (PayloadTotalWidth - i * MAX_ECC_DATA_BITS_WIDE) 
+                                          : MAX_ECC_DATA_BITS_WIDE;
+    localparam int unsigned CurECCWidth = hsiao_ecc_pkg::min_ecc(CurChunkWidth);
+    logic [CurECCWidth + CurChunkWidth -1:0] chunk_tmp;
+    assign chunk_tmp = (CurECCWidth < ECC_BITS_WIDE)
+                      ? { chan_i.generic.ecc[i][CurECCWidth-1:0],
+                          chan_i.generic.payload[ i * MAX_ECC_DATA_BITS_WIDE +: CurChunkWidth ] }
+                      : { chan_i.generic.ecc[i],
+                          chan_i.generic.payload[ i * MAX_ECC_DATA_BITS_WIDE +: CurChunkWidth ] };
+    hsiao_ecc_dec #(
+      .DataWidth ( CurChunkWidth )
+    ) i_req_ecc_dec (
+      .in    ( chunk_tmp ),
+      .out   ( chan_o.generic.payload[ i * MAX_ECC_DATA_BITS_WIDE +: CurChunkWidth ] ),
+      .syndrome_o (),
+      .err_o (hsiao_errs[i])
+    );
+  end
+
+endmodule

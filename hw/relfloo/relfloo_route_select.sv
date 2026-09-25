@@ -80,6 +80,7 @@ module relfloo_route_select
       .route_sel_o(route_sel),
       .route_sel_id_o(route_sel_id)
     );
+    assign TMR_faults[3] = 1'b0;
 
   end else if (RouteAlgo == SourceRouting) begin : gen_consumption
     // Routing based on a consumable header in the flit
@@ -92,6 +93,7 @@ module relfloo_route_select
         channel_o.hdr[i].dst_id = channel_i.hdr[i].dst_id >> RouteSelWidth;
       end
     end
+    assign TMR_faults[3] = 1'b0;
 
   end else if (RouteAlgo == XYRouting || RouteAlgo == YXRouting) begin : gen_dor_routing
     
