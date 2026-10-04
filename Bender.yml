@@ -32,7 +32,7 @@ sources:
   - hw/floo_cut.sv
   - hw/floo_fifo.sv
   - hw/relfloo/rel_stream_fifo.sv
-  - hw/relfloo/rel_ff_tmr.sv
+  - hw/relfloo/TMR_FF.sv
   - hw/relfloo/relfloo_stream_fifo_optimal_wrap.sv
   - hw/floo_cdc.sv
   - hw/floo_route_select.sv

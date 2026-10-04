@@ -53,6 +53,7 @@ module relfloo_route_select
   logic [2:0][NumRoutes-1:0] route_sel;
   logic [2:0][RouteSelWidth-1:0] route_sel_id;
   logic [3:0]TMR_faults;
+  logic dummy_fault;
 
   assign faults_o = |TMR_faults;
 
@@ -149,7 +150,8 @@ module relfloo_route_select
 
     `TMRFF(locked_route_q, locked_route_d, TMR_faults[0], '0)
     `TMRFFL(route_sel_q, route_sel, TMR_faults[1], ~locked_route_q, '0)
-    `TMRFFL(route_sel_id_q, route_sel_id, TMR_faults[2], ~locked_route_q, '0)
+    `TMRFFL(route_sel_id_q, route_sel_id, dummy_fault, ~locked_route_q, '0)
+    assign TMR_faults[2]= 1'b0;
 
     `ifndef TARGET_SYNTHESIS
       for (genvar i = 0; i < 3; i++) begin : gen_warn

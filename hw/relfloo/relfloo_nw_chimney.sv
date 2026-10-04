@@ -1546,7 +1546,7 @@ module relfloo_nw_chimney
     .ready_o    ( floo_rsp_o.ready       ),
     .chan_o     ( floo_rsp_o.rsp         )
   );
-  relfloo_encoder #(
+  relfloo_encoder_wide #(
     .chan_t     ( floo_wide_chan_t         ),
     .rel_chan_t ( relfloo_wide_chan_t      )
   ) i_wide_rel_enc (
@@ -1587,7 +1587,7 @@ module relfloo_nw_chimney
     .faults_o   ()
   );
 
-  relfloo_decoder #(
+  relfloo_decoder_wide #(
     .chan_t     ( floo_wide_chan_t         ),
     .rel_chan_t ( relfloo_wide_chan_t      )
   ) i_wide_rel_dec (

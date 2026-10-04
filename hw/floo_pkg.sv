@@ -533,7 +533,7 @@ package floo_pkg;
   endfunction
 
   /// relfloo extra data
-  localparam int unsigned ECC_BITS = 7;
+  localparam int unsigned ECC_BITS = 8;
   localparam int unsigned MAX_ECC_DATA_BITS = hsiao_ecc_pkg::max_data(ECC_BITS);
 
   function automatic int unsigned get_axi_ecc_nums(axi_cfg_t cfg, floo_chan_e ch);

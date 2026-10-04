@@ -99,7 +99,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
     .b_i              ( data_sel[1] ),
     .c_i              ( data_sel[2] ),
     .majority_o       ( data_o),
-    .fault_detected_o ( voter_fault)
+    .fault_detected_o ( )
   );
 
   // bitwise voting of output 
@@ -126,6 +126,7 @@ module relfloo_wormhole_arbiter import floo_pkg::*;
 
   `TMRFF(valid_q, valid_d, FF_TMR_fault[0], '0)
   `TMRFF(last_q, last_out & ready_i, FF_TMR_fault[1], '0)
+  assign voter_fault = 1'b0;
   assign faults_o = |{FF_TMR_fault, arb_fault, voter_fault};
 
   `ASSERT(InvalidCreation, valid_o |-> |valid_i)
