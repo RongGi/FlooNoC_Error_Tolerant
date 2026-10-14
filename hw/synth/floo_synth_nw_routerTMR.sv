@@ -117,9 +117,9 @@ module floo_synth_nw_routerTMR
       .floo_wide_oB    ( floo_wide_oB     ),
       .floo_wide_oC    ( floo_wide_oC     )
       `ifdef TARGET_FTMR
-      , .tmrErrorA       (              )
-      , .tmrErrorB       (              )
-      , .tmrErrorC       (              )
+      , .tmrErrorA      ( tmrErrorA            )
+    , .tmrErrorB       ( tmrErrorB             )
+    , .tmrErrorC       ( tmrErrorC             )
       `endif
     `else
       .test_enable_i   ( test_enable_i   ),

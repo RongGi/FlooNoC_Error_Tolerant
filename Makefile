@@ -35,6 +35,7 @@ BENDER_FLAGS += -t floo_test
 BENDER_FLAGS += -t snitch_cluster
 BENDER_FLAGS += -t idma_test
 BENDER_FLAGS += -t cc_no_deprecated
+BENDER_FLAGS += $(EXTRA_BENDER_FLAGS)
 
 WORK 	 		?= work
 TB_DUT 			?= tb_floo_router
@@ -105,6 +106,10 @@ run-vsim:
 
 run-vsim-batch:
 	$(VSIM) -c $(VSIM_FLAGS) $(TB_DUT) -do "run -all; quit"
+
+run-vsim-saif:
+	mkdir -p saif
+	SAIF_NAME=$(SAIF_NAME) $(VSIM) -c $(VSIM_FLAGS) -voptargs="+acc=npr" -onfinish stop $(TB_DUT) -do scripts/dump_saif.do
 
 clean-vsim:
 	rm -rf scripts/compile_vsim.tcl

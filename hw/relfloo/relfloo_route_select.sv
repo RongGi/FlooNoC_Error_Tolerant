@@ -54,6 +54,10 @@ module relfloo_route_select
   logic [2:0][RouteSelWidth-1:0] route_sel_id;
   logic [3:0]TMR_faults;
   logic dummy_fault;
+  logic [2:0] TMR_err;
+  //xy routing
+  logic [2:0][NumRoutes-1:0] route_sel_multicast;
+  logic [2:0][NumRoutes-1:0] route_sel_unicast;
 
   assign faults_o = |TMR_faults;
 
@@ -98,25 +102,108 @@ module relfloo_route_select
 
   end else if (RouteAlgo == XYRouting || RouteAlgo == YXRouting) begin : gen_dor_routing
     
-    relfloo_route_xy_yxrouting #(
-      .NumRoutes        (NumRoutes),
-      .RouteAlgo        (RouteAlgo),
-      .IdWidth          (IdWidth),
-      .RouteSelWidth    (RouteSelWidth),
-      .EnMultiCast      (EnMultiCast),
-      .flit_t           (flit_t),
-      .addr_rule_t      (addr_rule_t),
-      .id_t             (id_t)
-    ) i_route_xy_routing (
-      .clk_i,
-      .rst_ni,
-      .xy_id_i,
-      .channel_i,
-      .channel_o,
-      .route_sel_o(route_sel),
-      .route_sel_id_o(route_sel_id),
-      .TMR_faults_o(TMR_faults[3])
+    if (EnMultiCast) begin : gen_mcast_route_sel
+    floo_route_xymask #(
+      .NumRoutes     ( NumRoutes        ),
+      .flit_t        ( flit_t           ),
+      .id_t          ( id_t             ),
+      .FwdMode       ( 1'b1             ),
+      .RouteAlgo     ( RouteAlgo        )
+    ) i_route_xymask (
+      .channel_i   ( channel_i ),
+      .xy_id_i     ( xy_id_i   ),
+      .route_sel_o ( route_sel_multicast )
     );
+  end else begin : gen_no_mcast
+    assign route_sel_multicast = '0;  // No MCast supported
+  end
+
+  if (RouteAlgo == XYRouting) begin : gen_xy_routing
+    // Routing based on simple XY routing (X dimension resolved first, then Y)
+    // Calculate here the unicast output mask
+    id_t [2:0] id_in;
+    for (genvar i = 0; i < 3; i++) begin : tmr_xy
+      assign id_in[i] = id_t'(channel_i.hdr[i].dst_id);
+    end
+    always_comb begin
+      route_sel_unicast = '0;
+      for (int unsigned i = 0; i < 3; i++) begin
+        route_sel_id[i] = East;
+        if (id_in[i].x == xy_id_i[i].x && id_in[i].y == xy_id_i[i].y) begin
+          route_sel_id[i] = Eject + channel_i.hdr[i].dst_id.port_id;
+        end else if (id_in[i].x == xy_id_i[i].x) begin
+          if (id_in[i].y < xy_id_i[i].y) begin
+            route_sel_id[i] = South;
+          end else begin
+            route_sel_id[i] = North;
+          end
+        end else begin
+          if (id_in[i].x < xy_id_i[i].x) begin
+            route_sel_id[i] = West;
+          end else begin
+            route_sel_id[i] = East;
+          end
+        end
+        route_sel_unicast[i][route_sel_id[i]] = 1'b1;
+      end
+    end
+  end else begin : gen_yx_routing
+    // Routing based on simple YX routing (Y dimension resolved first, then X)
+    id_t[2:0] id_in;
+    for (genvar i = 0; i < 3; i++) begin : tmr_yx
+      assign id_in[i] = id_t'(channel_i.hdr[i].dst_id);
+    end
+    always_comb begin
+      route_sel_unicast = '0;
+      for (int unsigned i = 0; i < 3; i++) begin
+        route_sel_id[i] = North;
+        if (id_in[i].x == xy_id_i[i].x && id_in[i].y == xy_id_i[i].y) begin
+          route_sel_id[i] = Eject + channel_i.hdr[i].dst_id.port_id;
+        end else if (id_in[i].y == xy_id_i[i].y) begin
+          // Y matches — now route along X
+          if (id_in[i].x < xy_id_i[i].x) begin
+            route_sel_id[i] = West;
+          end else begin
+            route_sel_id[i] = East;
+          end
+        end else begin
+          // Route along Y first
+          if (id_in[i].y < xy_id_i[i].y) begin
+            route_sel_id[i] = South;
+          end else begin
+            route_sel_id[i] = North;
+          end
+        end
+        route_sel_unicast[i][route_sel_id[i]] = 1'b1;
+      end
+    end
+  end
+
+  // Depending on the flit header choose the correct route
+  if(EnMultiCast) begin: gen_mcast_out_sel
+    logic [2:0]selector;
+    logic [2:0]selected;
+    for (genvar i = 0; i < 3; i++) begin : tmr_selector
+      assign selector[i]=(channel_i.hdr[i].collective_op == Multicast);
+    end
+    for (genvar i = 0; i < 3; i++) begin : tmr_selected
+      TMR_voter_fail i_select_tmr (
+          .a_i              ( selector[0] ),
+          .b_i              ( selector[1] ),
+          .c_i              ( selector[2] ),
+          .majority_o       ( selected[i] ),
+          .fault_detected_o ( TMR_err[i])
+      );
+      assign route_sel[i] = (selected[i]) ?
+                        route_sel_multicast[i] : route_sel_unicast[i];
+    end
+  end else begin: gen_unicast_route_sel
+    assign route_sel = route_sel_unicast;
+    assign TMR_err = '0;
+  end
+
+  assign TMR_faults[3] = |TMR_err;
+  assign channel_o = channel_i;
 
   end else begin : gen_err
     // Unknown or unimplemented routing otherwise

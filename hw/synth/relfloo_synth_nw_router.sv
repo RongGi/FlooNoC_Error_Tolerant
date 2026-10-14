@@ -35,6 +35,8 @@ module relfloo_synth_nw_router
 
   output logic [1:0] faults_o
 );
+// tie down fault
+// assign faults_o = 2'b0;
 
 // Build a CollectiveCfg derived from CollectRouteCfg but with OpCfg selected by CollectCfgIdx
 localparam floo_pkg::collective_cfg_t ActiveCollectiveCfg = '{
