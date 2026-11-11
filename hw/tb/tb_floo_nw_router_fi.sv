@@ -123,9 +123,12 @@ module floo_nw_router_fi_dut_wrapper #(
   logic [NumOutputs-1:0] dut_req_replica_mismatch;
   logic [NumInputs-1:0]  dut_rsp_replica_mismatch;
   logic [NumRoutes-1:0]  dut_wide_replica_mismatch;
-  logic [NumOutputs-1:0][1:0] req_correction;
-  logic [NumInputs-1:0] [1:0] rsp_correction;
-  logic [NumRoutes-1:0] [1:0] wide_correction;
+  logic [NumOutputs-1:0] req_correction;
+  logic [NumInputs-1:0]  rsp_correction;
+  logic [NumRoutes-1:0]  wide_correction;
+  logic [NumOutputs-1:0] req_detected;
+  logic [NumInputs-1:0]  rsp_detected;
+  logic [NumRoutes-1:0]  wide_detected;
 
   // ====================================================================
   // BASELINE / STMR
@@ -215,7 +218,7 @@ module floo_nw_router_fi_dut_wrapper #(
         .valid_o    ( floo_req_o[out].valid ),
         .ready_o    ( floo_req_o[out].ready ),
         .chan_o     ( floo_req_o[out].req   ),
-        .faults_o(req_correction[out])
+        .faults_o({req_detected[out],req_correction[out]})
       );
     end
 
@@ -230,7 +233,7 @@ module floo_nw_router_fi_dut_wrapper #(
         .valid_o    ( floo_rsp_o[in].valid ),
         .ready_o    ( floo_rsp_o[in].ready ),
         .chan_o     ( floo_rsp_o[in].rsp   ),
-        .faults_o(rsp_correction[in])
+        .faults_o({rsp_detected[in],rsp_correction[in]})
       );
     end
 
@@ -245,7 +248,7 @@ module floo_nw_router_fi_dut_wrapper #(
         .valid_o    ( floo_wide_o[r].valid ),
         .ready_o    ( floo_wide_o[r].ready ),
         .chan_o     ( floo_wide_o[r].wide   ),
-        .faults_o(wide_correction[r])
+        .faults_o({wide_detected[r],wide_correction[r]})
       ); 
     end
   `endif
@@ -467,7 +470,7 @@ module floo_nw_router_fi_dut_wrapper #(
     assign uncorr_error = 1'b0;
   `elsif TARGET_RELNOC
     assign dut_error = relErrorCorr;
-    assign uncorr_error = relErrorDet;
+    assign uncorr_error = |{req_detected,rsp_detected,wide_detected} | relErrorDet;
   `else
     assign dut_error = 1'b0;
     assign uncorr_error = 1'b0;

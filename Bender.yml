@@ -20,7 +20,9 @@ dependencies:
   idma: { git: https://github.com/pulp-platform/idma.git,              rev: 78ab25f13a88658be3f7b4d1d7b1074effaf42eb,  upstream_name: iDMA }
   FPnew: { git: "https://github.com/pulp-platform/cvfpu.git", rev: common-cells-v2 }
   floo_noc_pd: { path: ./pd, target: "floo_synth" }
-  redundancy_cells : { git: "https://github.com/pulp-platform/redundancy_cells.git", rev: master}
+  redundancy_cells : { git: "https://github.com/RongGi/redundancy_cells.git", rev: 6553e82bed04933b132dec18d9d20ac432810cb3 }
+  # actual redundancy cells, but currently uncompatible
+  #redundancy_cells : { git: "https://github.com/pulp-platform/redundancy_cells.git", rev: master}
 
 export_include_dirs:
   - hw/include
@@ -73,8 +75,8 @@ sources:
   - hw/floo_axi_router.sv
   - hw/floo_nw_router.sv
   - hw/relfloo/relfloo_nw_router.sv
-  - hw/TMR/full/floo_nw_routerTMR.sv
-  - hw/TMR/full/*.sv
+  #- hw/TMR/full/floo_nw_routerTMR.sv
+  #- hw/TMR/full/*.sv
 
   - target: floo_test
     include_dirs:
@@ -153,7 +155,7 @@ sources:
     - hw/synth/floo_synth_nw_2tiles.sv
     - hw/synth/relfloo_synth_nw_router.sv
     - hw/synth/relfloo_synth_nw_chimney.sv
-    - hw/synth/floo_synth_nw_routerTMR.sv
+    #- hw/synth/floo_synth_nw_routerTMR.sv
 
   - target: floo_deprecated_hw
     include_dirs:

@@ -1,4 +1,6 @@
-// Flipflop add on at the end for redundancy
+// TMR Flipflop modules
+// rel_ff_tmr is the normal FF
+// rel_ffl_tmr is the clock gated FF
 module rel_ff_tmr #(
   parameter type data_t = logic,
   parameter int unsigned VoterType = 1 // 0: Classical_MV, 1: KP_MV, 2: BN_MV

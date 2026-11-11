@@ -88,10 +88,10 @@ packages:
     - common_cells
     - common_verification
   redundancy_cells:
-    revision: null
+    revision: 6553e82bed04933b132dec18d9d20ac432810cb3
     version: null
     source:
-      Path: working_dir/redundancy_cells
+      Git: https://github.com/RongGi/redundancy_cells.git
     dependencies:
     - common_cells
     - common_verification
